@@ -1878,8 +1878,8 @@ void loop()
       // by CMDBUFFER_CURRENT_TYPE_TO_BE_REMOVED.
       cmdqueue_pop_front();
     }
+    host_keepalive();
   }
-  host_keepalive();
 }
   //check heater every n milliseconds
   manage_heater();
