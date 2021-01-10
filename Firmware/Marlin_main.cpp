@@ -1655,6 +1655,9 @@ char chunk[CHUNK_SIZE+SAFETY_MARGIN];
 int chunkHead = 0;
 
 void serial_read_stream() {
+#ifdef USE_DIRECT_SERIAL_RX
+    MYSERIAL.enableInternalDrain();
+#endif
 
     setAllTargetHotends(0);
     setTargetBed(0);
@@ -1717,6 +1720,10 @@ void serial_read_stream() {
             SERIAL_PROTOCOLLNRPGM(MSG_FILE_SAVED);
         }
     }
+
+#ifdef USE_DIRECT_SERIAL_RX
+    MYSERIAL.disableInternalDrain();
+#endif
 }
 
 /**
@@ -3399,14 +3406,20 @@ static void gcode_PRUSA_SN()
     uint8_t selectedSerialPort_bak = selectedSerialPort;
     char SN[20];
     selectedSerialPort = 0;
+
+#ifdef USE_DIRECT_SERIAL_RX
+    MYSERIAL.enableInternalDrain();
+#endif
+
     SERIAL_ECHOLNRPGM(PSTR(";S"));
     uint8_t numbersRead = 0;
     ShortTimer timeout;
     timeout.start();
 
+    char read = '\0';
     while (numbersRead < (sizeof(SN) - 1)) {
-        if (MSerial.available() > 0) {
-            SN[numbersRead] = MSerial.read();
+        if ((read = MSerial.read()) > 0) {
+            SN[numbersRead] = read;
             numbersRead++;
         }
         if (timeout.expired(100u)) break;
@@ -3414,6 +3427,11 @@ static void gcode_PRUSA_SN()
     SN[numbersRead] = 0;
     selectedSerialPort = selectedSerialPort_bak;
     SERIAL_ECHOLN(SN);
+
+#ifdef USE_DIRECT_SERIAL_RX
+    MYSERIAL.disableInternalDrain();
+#endif
+
 }
 //! Detection of faulty RAMBo 1.1b boards equipped with bigger capacitors
 //! at the TACH_1 pin, which causes bad detection of print fan speed.

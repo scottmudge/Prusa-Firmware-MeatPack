@@ -67,19 +67,33 @@
 
 
 #ifndef AT90USB
+
+#ifdef USE_DIRECT_SERIAL_RX
+typedef void (*serial_drain_func_t)(const uint8_t c);
+#define RX_BUFFER_SIZE 32
+#else
+
 // Define constants and variables for buffering incoming serial data.  We're
 // using a ring buffer (I think), in which rx_buffer_head is the index of the
 // location to which to write the next incoming character and rx_buffer_tail
 // is the index of the location from which to read.
 #define RX_BUFFER_SIZE 128
+#endif
 
 extern uint8_t selectedSerialPort;
 
 struct ring_buffer
 {
   unsigned char buffer[RX_BUFFER_SIZE];
-  int head;
-  int tail;
+
+#if (RX_BUFFER_SIZE < 256)
+  // 8-bit vars more efficient on 8-bit MCUs
+  uint8_t head;
+  uint8_t tail;
+#else
+  uint16_t head;
+  uint16_t tail;
+#endif
 };
 
 #if UART_PRESENT(SERIAL_PORT)
@@ -92,9 +106,16 @@ class MarlinSerial //: public Stream
   public:
     static void begin(long);
     static void end();
+
+    // changed to char, as we won't exceed standard ASCII range, and using 16/32-bit return types is very inefficient.
+    static char read(void);
+
+#ifdef USE_DIRECT_SERIAL_RX   
+    static void setDrainFunction(const serial_drain_func_t drain_func);
+    static void enableInternalDrain();
+    static void disableInternalDrain();
+#else
     static int peek(void);
-    static int read(void);
-    static void flush(void);
     
     static /*FORCE_INLINE*/ int available(void)
     {
@@ -109,73 +130,11 @@ class MarlinSerial //: public Stream
       M_UDRx = c;
     }
     */
-	static void write(uint8_t c)
-	{
-		if (selectedSerialPort == 0)
-		{
-			while (!((M_UCSRxA) & (1 << M_UDREx)));
-			M_UDRx = c;
-		}
-		else if (selectedSerialPort == 1)
-		{
-			while (!((UCSR1A) & (1 << UDRE1)));
-			UDR1 = c;
-		}
-	}
-    
-    static void checkRx(void)
-    {
-        if (selectedSerialPort == 0) {
-            if((M_UCSRxA & (1<<M_RXCx)) != 0) {
-                // Test for a framing error.
-                if (M_UCSRxA & (1<<M_FEx)) {
-                    // Characters received with the framing errors will be ignored.
-                    // The temporary variable "c" was made volatile, so the compiler does not optimize this out.
-                    (void)(*(char *)M_UDRx);
-                } else {
-                    unsigned char c  =  M_UDRx;
-                    int i = (unsigned int)(rx_buffer.head + 1) % RX_BUFFER_SIZE;
-                    // if we should be storing the received character into the location
-                    // just before the tail (meaning that the head would advance to the
-                    // current location of the tail), we're about to overflow the buffer
-                    // and so we don't write the character or advance the head.
-                    if (i != rx_buffer.tail) {
-                        rx_buffer.buffer[rx_buffer.head] = c;
-                        rx_buffer.head = i;
-                    }
-                    //selectedSerialPort = 0;
-#ifdef DEBUG_DUMP_TO_2ND_SERIAL
-					UDR1 = c;
-#endif //DEBUG_DUMP_TO_2ND_SERIAL
-                }
-            }
-        } else { // if(selectedSerialPort == 1) {
-            if((UCSR1A & (1<<RXC1)) != 0) {
-                // Test for a framing error.
-                if (UCSR1A & (1<<FE1)) {
-                    // Characters received with the framing errors will be ignored.
-                    // The temporary variable "c" was made volatile, so the compiler does not optimize this out.
-                    (void)(*(char *)UDR1);
-                } else {
-                    unsigned char c  =  UDR1;
-                    int i = (unsigned int)(rx_buffer.head + 1) % RX_BUFFER_SIZE;
-                    // if we should be storing the received character into the location
-                    // just before the tail (meaning that the head would advance to the
-                    // current location of the tail), we're about to overflow the buffer
-                    // and so we don't write the character or advance the head.
-                    if (i != rx_buffer.tail) {
-                        rx_buffer.buffer[rx_buffer.head] = c;
-                        rx_buffer.head = i;
-                    }
-                    //selectedSerialPort = 1;
-#ifdef DEBUG_DUMP_TO_2ND_SERIAL
-					M_UDRx = c;
-#endif //DEBUG_DUMP_TO_2ND_SERIAL
-                }
-            }
-        }
-    }
-    
+
+#endif
+    static void flush(void);
+    static void checkRx(void);
+	static void write(uint8_t c);
     
     private:
     static void printNumber(unsigned long, uint8_t);
@@ -184,18 +143,10 @@ class MarlinSerial //: public Stream
     
   public:
     
-    static /*FORCE_INLINE*/ void write(const char *str)
-    {
-      while (*str)
-        write(*str++);
-    }
+    static /*FORCE_INLINE*/ void write(const char *str);
 
 
-    static /*FORCE_INLINE*/ void write(const uint8_t *buffer, size_t size)
-    {
-      while (size--)
-        write(*buffer++);
-    }
+    static /*FORCE_INLINE*/ void write(const uint8_t *buffer, size_t size);
 
 /*    static FORCE_INLINE void print(const String &s)
     {

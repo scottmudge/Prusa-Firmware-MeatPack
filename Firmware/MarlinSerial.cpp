@@ -30,13 +30,26 @@ uint8_t selectedSerialPort = 0;
 // this is so I can support Attiny series and any other chip without a UART
 #if defined(UBRRH) || defined(UBRR0H) || defined(UBRR1H) || defined(UBRR2H) || defined(UBRR3H)
 
+#ifdef USE_DIRECT_SERIAL_RX
+static void null_drain_func(const uint8_t c) {}
+
+// Set to null function to save a couple cycles on comparator in interrupt. Null function will return immediately
+// and be optimized away as 'nop'.
+serial_drain_func_t serial_drain_func = &null_drain_func;
+serial_drain_func_t internal_drain_func = NULL;
+#endif
+
 #if UART_PRESENT(SERIAL_PORT)
   ring_buffer rx_buffer  =  { { 0 }, 0, 0 };
 #endif
 
-FORCE_INLINE void store_char(unsigned char c)
+FORCE_INLINE void store_char(const uint8_t c)
 {
-  int i = (unsigned int)(rx_buffer.head + 1) % RX_BUFFER_SIZE;
+#if (RX_BUFFER_SIZE < 256)
+    const uint8_t i = (uint8_t)(rx_buffer.head + 1) % RX_BUFFER_SIZE;
+#else
+    const int i = (unsigned int)(rx_buffer.head + 1) % RX_BUFFER_SIZE;
+#endif
 
   // if we should be storing the received character into the location
   // just before the tail (meaning that the head would advance to the
@@ -48,7 +61,8 @@ FORCE_INLINE void store_char(unsigned char c)
   }
 }
 
-
+// Primary UART Rx Interrupt
+//==========================================================================
 #if defined(M_USARTx_RX_vect)
 // The serial line receive interrupt routine for a baud rate 115200
 // ticks at maximum 11.76 kHz and blocks for 2.688 us at each tick.
@@ -67,14 +81,24 @@ ISR(M_USARTx_RX_vect)
 	else
 	{
 		// Read the input register.
-		unsigned char c = M_UDRx;
-		if (selectedSerialPort == 0)
-			store_char(c);
+		const uint8_t c = M_UDRx;
+        if (selectedSerialPort == 0) {
+#ifdef USE_DIRECT_SERIAL_RX
+            if (internal_drain_func) internal_drain_func(c);
+            else serial_drain_func(c);
+#else
+            store_char(c);
+#endif
+        }
+			
 #ifdef DEBUG_DUMP_TO_2ND_SERIAL
 		UDR1 = c;
 #endif //DEBUG_DUMP_TO_2ND_SERIAL
 	}
 }
+
+// Secondary UART Rx Interrupt (used for farm mode & debugging?)
+//==========================================================================
 #ifndef SNMM
 ISR(USART1_RX_vect)
 {
@@ -89,15 +113,23 @@ ISR(USART1_RX_vect)
 	{
 		// Read the input register.
 		unsigned char c = UDR1;
-		if (selectedSerialPort == 1)
-			store_char(c);
+        if (selectedSerialPort == 1) {
+#ifdef USE_DIRECT_SERIAL_RX
+            if (internal_drain_func) internal_drain_func(c);
+            else serial_drain_func(c);
+#else
+            store_char(c);
+#endif
+        }
 #ifdef DEBUG_DUMP_TO_2ND_SERIAL
 		M_UDRx = c;
 #endif //DEBUG_DUMP_TO_2ND_SERIAL
 	}
 }
-#endif
-#endif
+//==========================================================================
+
+#endif // ifdef SNMM
+#endif // ifdef M_USARTx_RX_vect
 
 // Public Methods //////////////////////////////////////////////////////////////
 
@@ -167,7 +199,38 @@ void MarlinSerial::end()
 }
 
 
+#ifdef USE_DIRECT_SERIAL_RX
+void MarlinSerial::setDrainFunction(const serial_drain_func_t drain_func) {
+    serial_drain_func = drain_func;
+}
 
+void MarlinSerial::enableInternalDrain() {
+    internal_drain_func = &store_char;
+}
+
+void MarlinSerial::disableInternalDrain() {
+    internal_drain_func = NULL;
+}
+
+char  MarlinSerial::read(void)
+{
+    // if the head isn't ahead of the tail, we don't have any characters
+    if (rx_buffer.head == rx_buffer.tail) {
+        return -1;
+    }
+    else {
+       const uint8_t c = rx_buffer.buffer[rx_buffer.tail];
+#if (RX_BUFFER_SIZE < 256)
+        rx_buffer.tail = (uint8_t)(rx_buffer.tail + 1) % RX_BUFFER_SIZE;
+#else
+       rx_buffer.tail = (unsigned int)(rx_buffer.tail + 1) % RX_BUFFER_SIZE;
+#endif
+        return (char)c;
+    }
+}
+
+
+#else
 int MarlinSerial::peek(void)
 {
   if (rx_buffer.head == rx_buffer.tail) {
@@ -176,30 +239,77 @@ int MarlinSerial::peek(void)
     return rx_buffer.buffer[rx_buffer.tail];
   }
 }
-
-int MarlinSerial::read(void)
-{
-  // if the head isn't ahead of the tail, we don't have any characters
-  if (rx_buffer.head == rx_buffer.tail) {
-    return -1;
-  } else {
-    unsigned char c = rx_buffer.buffer[rx_buffer.tail];
-    rx_buffer.tail = (unsigned int)(rx_buffer.tail + 1) % RX_BUFFER_SIZE;
-    return c;
-  }
-}
+#endif
 
 void MarlinSerial::flush()
 {
-  // don't reverse this or there may be problems if the RX interrupt
-  // occurs after reading the value of rx_buffer_head but before writing
-  // the value to rx_buffer_tail; the previous value of rx_buffer_head
-  // may be written to rx_buffer_tail, making it appear as if the buffer
-  // were full, not empty.
-  rx_buffer.head = rx_buffer.tail;
+    // don't reverse this or there may be problems if the RX interrupt
+    // occurs after reading the value of rx_buffer_head but before writing
+    // the value to rx_buffer_tail; the previous value of rx_buffer_head
+    // may be written to rx_buffer_tail, making it appear as if the buffer
+    // were full, not empty.
+    rx_buffer.head = rx_buffer.tail;
 }
 
-
+void MarlinSerial::checkRx(void)
+{
+#ifdef USE_DIRECT_SERIAL_RX
+    // Do nothing here, prevent stepper stutter.
+#else
+    if (selectedSerialPort == 0) {
+        if ((M_UCSRxA & (1 << M_RXCx)) != 0) {
+            // Test for a framing error.
+            if (M_UCSRxA & (1 << M_FEx)) {
+                // Characters received with the framing errors will be ignored.
+                // The temporary variable "c" was made volatile, so the compiler does not optimize this out.
+                (void)(*(char*)M_UDRx);
+            }
+            else {
+                unsigned char c = M_UDRx;
+                int i = (unsigned int)(rx_buffer.head + 1) % RX_BUFFER_SIZE;
+                // if we should be storing the received character into the location
+                // just before the tail (meaning that the head would advance to the
+                // current location of the tail), we're about to overflow the buffer
+                // and so we don't write the character or advance the head.
+                if (i != rx_buffer.tail) {
+                    rx_buffer.buffer[rx_buffer.head] = c;
+                    rx_buffer.head = i;
+                }
+                //selectedSerialPort = 0;
+#ifdef DEBUG_DUMP_TO_2ND_SERIAL
+                UDR1 = c;
+#endif //DEBUG_DUMP_TO_2ND_SERIAL
+            }
+        }
+    }
+    else { // if(selectedSerialPort == 1) {
+        if ((UCSR1A & (1 << RXC1)) != 0) {
+            // Test for a framing error.
+            if (UCSR1A & (1 << FE1)) {
+                // Characters received with the framing errors will be ignored.
+                // The temporary variable "c" was made volatile, so the compiler does not optimize this out.
+                (void)(*(char*)UDR1);
+            }
+            else {
+                unsigned char c = UDR1;
+                int i = (unsigned int)(rx_buffer.head + 1) % RX_BUFFER_SIZE;
+                // if we should be storing the received character into the location
+                // just before the tail (meaning that the head would advance to the
+                // current location of the tail), we're about to overflow the buffer
+                // and so we don't write the character or advance the head.
+                if (i != rx_buffer.tail) {
+                    rx_buffer.buffer[rx_buffer.head] = c;
+                    rx_buffer.head = i;
+                }
+                //selectedSerialPort = 1;
+#ifdef DEBUG_DUMP_TO_2ND_SERIAL
+                M_UDRx = c;
+#endif //DEBUG_DUMP_TO_2ND_SERIAL
+            }
+        }
+    }
+#endif
+}
 
 
 /// imports from print.h
@@ -370,6 +480,33 @@ void MarlinSerial::printFloat(double number, uint8_t digits)
     remainder -= toPrint; 
   } 
 }
+
+void MarlinSerial::write(uint8_t c)
+{
+    if (selectedSerialPort == 0)
+    {
+        while (!((M_UCSRxA) & (1 << M_UDREx)));
+        M_UDRx = c;
+    }
+    else if (selectedSerialPort == 1)
+    {
+        while (!((UCSR1A) & (1 << UDRE1)));
+        UDR1 = c;
+    }
+}
+
+void MarlinSerial::write(const uint8_t* buffer, size_t size)
+{
+    while (size--)
+        write(*buffer++);
+}
+
+void MarlinSerial::write(const char* str)
+{
+    while (*str)
+        write(*str++);
+}
+
 // Preinstantiate Objects //////////////////////////////////////////////////////
 
 

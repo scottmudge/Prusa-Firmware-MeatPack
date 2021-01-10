@@ -77,6 +77,11 @@ extern PGM_P sPrinterName;
 // Serial port 0 is still used by the Arduino bootloader regardless of this setting.
 #define SERIAL_PORT 0
 
+// If set to true, the serial interrupt drains directly into the command buffer. In this way, the primary loop
+// is more frequently evaluating and testing to see if a command is available, and stuttering is reduced at high
+// feed rates/speeds.
+#define USE_DIRECT_SERIAL_RX
+
 // This determines the communication speed of the printer
 #define BAUDRATE 115200
 
