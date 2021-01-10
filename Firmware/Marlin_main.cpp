@@ -1807,7 +1807,7 @@ void loop()
   #ifdef SDSUPPORT
   card.checkautostart(false);
   #endif
-  while(buflen)
+  for(uint8_t i = 0; i < 2 && buflen; ++i)
   {
     cmdbuffer_front_already_processed = false;
     #ifdef SDSUPPORT
