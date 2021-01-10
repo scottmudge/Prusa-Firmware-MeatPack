@@ -86,11 +86,7 @@ extern PGM_P sPrinterName;
 // The following define selects which electronics board you have.
 // Please choose the name from boards.h that matches your setup
 
-
-
-
-
-
+#define DISABLE_PRUSA_COMMANDS
 
 // Define this to set a unique identifier for this printer, (Used by some programs to differentiate between machines)
 // You can use an online service to generate a random UUID. (eg http://www.uuidgenerator.net/version4)
@@ -487,7 +483,7 @@ your extruder heater takes 2 minutes to hit the target on heating.
 // which is not ass annoying as with the hardware PWM. On the other hand, if this frequency
 // is too low, you should also increment SOFT_PWM_SCALE.
 #define FAN_SOFT_PWM
-#define FAN_SOFT_PWM_BITS 4 //PWM bit resolution = 4bits, freq = 62.5Hz
+#define FAN_SOFT_PWM_BITS 5 //PWM bit resolution = 4bits, freq = 62.5Hz
 
 // Bed soft pwm
 #define HEATER_BED_SOFT_PWM_BITS 5 //PWM bit resolution = 5bits, freq = 31.25Hz

@@ -3660,6 +3660,8 @@ extern uint8_t st_backlash_y;
 //!@n M350 - Set microstepping mode.
 //!@n M351 - Toggle MS1 MS2 pins directly.
 //!
+//!@n M424 - Start USB Print
+//!
 //!@n M928 - Start SD logging (M928 filename.g) - ended by M29
 //!@n M999 - Restart after being stopped by error
 //! <br><br>
@@ -3847,6 +3849,7 @@ void process_commands()
 	}
 #endif //BACKLASH_Y
 #endif //TMC2130
+#ifndef DISABLE_PRUSA_COMMANDS
   else if(code_seen("PRUSA")){ 
     /*!
     ---------------------------------------------------------------------------------
@@ -4055,7 +4058,8 @@ eeprom_update_word((uint16_t*)EEPROM_NOZZLE_DIAMETER_uM,0xFFFF);
 		//  lcd_calibration();
 	  // }
 
-  } 
+  }
+#endif
   // This prevents reading files with "^" in their names.
   // Since it is unclear, if there is some usage of this construct,
   // it will be deprecated in 3.9 alpha a possibly completely removed in the future:
@@ -8601,6 +8605,23 @@ Sigma_Exit:
       #endif
     }
     break;
+
+
+    /*!
+    ### M424 - Start USB Print - For resetting fail stats.
+    #### Usage
+
+        M424
+
+    #### Parameters
+        None
+    */
+    case 424:
+    {
+        failstats_reset_print();
+    }
+    break;
+
 
   /*!
   ### M701 - Load filament <a href="https://reprap.org/wiki/G-code#M701:_Load_filament">M701: Load filament</a>

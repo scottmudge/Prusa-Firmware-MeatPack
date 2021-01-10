@@ -452,13 +452,17 @@ void get_command()
 			  
 			  gcode_N = 0;
               uint8_t state_var = 0;
-	
+
               if (cmdbuffer[bufindw + CMDHDRSIZE] == 'N') state_var |= IS_N_BIT;
-	
+              if ((strchr_pointer = strchr(cmdbuffer + bufindw + CMDHDRSIZE, '*')) != NULL) state_var |= IS_STAR_BIT;
 			  // Line numbers must be first in buffer
 	
-			  if ((strstr(cmdbuffer+bufindw+CMDHDRSIZE, "PRUSA") == NULL) &&
-				  (cmdbuffer[bufindw+CMDHDRSIZE] == 'N')) {
+			  
+#ifndef DISABLE_PRUSA_COMMANDS
+              if ((strstr(cmdbuffer+bufindw+CMDHDRSIZE, "PRUSA") == NULL) &&
+#else
+              if (
+#endif		 
                   (state_var &  IS_N_BIT)) {
 	
 				  // Line number met. When sending a G-code over a serial line, each line may be stamped with its index,
@@ -476,9 +480,8 @@ void get_command()
 					  return;
 				  }
 	
-				  if((strchr_pointer = strchr(cmdbuffer+bufindw+CMDHDRSIZE, '*')) != NULL)
+				  if (state_var & IS_STAR_BIT)
 				  {
-                      state_var |= IS_STAR_BIT;
 					  byte checksum = 0;
 					  char *p = cmdbuffer+bufindw+CMDHDRSIZE;
 					  while (p != strchr_pointer)
