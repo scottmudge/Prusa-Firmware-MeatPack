@@ -1809,6 +1809,7 @@ void loop()
   #endif
   for(uint8_t i = 0; i < 2 && buflen; ++i)
   {
+    if (!buflen) break;
     cmdbuffer_front_already_processed = false;
     #ifdef SDSUPPORT
       if(card.saving)
