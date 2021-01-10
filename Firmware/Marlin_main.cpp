@@ -1807,7 +1807,7 @@ void loop()
   #ifdef SDSUPPORT
   card.checkautostart(false);
   #endif
-  if(buflen)
+  while(buflen)
   {
     cmdbuffer_front_already_processed = false;
     #ifdef SDSUPPORT
@@ -1838,7 +1838,7 @@ void loop()
       // The first character in the block is the block type.      
       char *ptr = cmdbuffer + bufindr;
       if (*ptr == CMDBUFFER_CURRENT_TYPE_SDCARD) {
-        // To support power panic, move the lenght of the command on the SD card to a planner buffer.
+        // To support power panic, move the length of the command on the SD card to a planner buffer.
         union {
           struct {
               char lo;
@@ -1877,8 +1877,8 @@ void loop()
       // by CMDBUFFER_CURRENT_TYPE_TO_BE_REMOVED.
       cmdqueue_pop_front();
     }
-	host_keepalive();
   }
+  host_keepalive();
 }
   //check heater every n milliseconds
   manage_heater();
