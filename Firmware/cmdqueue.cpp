@@ -3,6 +3,11 @@
 #include "ultralcd.h"
 #include "MeatPack.h"
 
+// For optimizations in serial parsing.
+#define IS_DOLLAR_BIT  (1 << 0)
+#define IS_N_BIT    (1 << 1)
+#define IS_STAR_BIT  (1 << 2)
+
 extern bool Stopped;
 
 // Reserve BUFSIZE lines of length MAX_CMD_SIZE plus CMDBUFFER_RESERVE_FRONT.
@@ -446,11 +451,15 @@ void get_command()
 	      if(!comment_mode){
 			  
 			  gcode_N = 0;
+              uint8_t state_var = 0;
+	
+              if (cmdbuffer[bufindw + CMDHDRSIZE] == 'N') state_var |= IS_N_BIT;
 	
 			  // Line numbers must be first in buffer
 	
 			  if ((strstr(cmdbuffer+bufindw+CMDHDRSIZE, "PRUSA") == NULL) &&
 				  (cmdbuffer[bufindw+CMDHDRSIZE] == 'N')) {
+                  (state_var &  IS_N_BIT)) {
 	
 				  // Line number met. When sending a G-code over a serial line, each line may be stamped with its index,
 				  // and Marlin tests, whether the successive lines are stamped with an increasing line number ID
@@ -469,6 +478,7 @@ void get_command()
 	
 				  if((strchr_pointer = strchr(cmdbuffer+bufindw+CMDHDRSIZE, '*')) != NULL)
 				  {
+                      state_var |= IS_STAR_BIT;
 					  byte checksum = 0;
 					  char *p = cmdbuffer+bufindw+CMDHDRSIZE;
 					  while (p != strchr_pointer)
@@ -496,11 +506,12 @@ void get_command()
 	
 				  // Don't parse N again with code_seen('N')
 				  cmdbuffer[bufindw + CMDHDRSIZE] = '$';
+                  state_var |= IS_DOLLAR_BIT;
 				  //if no errors, continue parsing
 				  gcode_LastN = gcode_N;
 			}
 	        // if we don't receive 'N' but still see '*'
-	        if ((cmdbuffer[bufindw + CMDHDRSIZE] != 'N') && (cmdbuffer[bufindw + CMDHDRSIZE] != '$') && (strchr(cmdbuffer+bufindw+CMDHDRSIZE, '*') != NULL))
+	        if (!(state_var & IS_N_BIT) && !(state_var & IS_DOLLAR_BIT) && (state_var & IS_STAR_BIT))
 	        {
 	
 	            SERIAL_ERROR_START;
