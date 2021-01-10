@@ -9215,7 +9215,7 @@ void menu_lcd_lcdupdate_func(void)
 		}
 		if (lcd_draw_update == 2) lcd_clear();
 		if (lcd_draw_update) lcd_draw_update--;
-		lcd_next_update_millis = _millis() + LCD_UPDATE_INTERVAL;
+		lcd_next_update_millis = _millis() + (is_usb_printing && moves_planned()) ? LCD_UPDATE_INTERVAL_PRINTING_SERIAL : LCD_UPDATE_INTERVAL;
 	}
 	if (!SdFatUtil::test_stack_integrity()) stack_error();
 	lcd_ping(); //check that we have received ping command if we are in farm mode
