@@ -72,7 +72,7 @@ extern void lcd_print(double, int = 2);
 
 
 #define LCD_UPDATE_INTERVAL    100
-#define LCD_UPDATE_INTERVAL_PRINTING_SERIAL    350 //!< If printing over serial, we only need to update every second or so, as most of the info is available via OctoPrint
+#define LCD_UPDATE_INTERVAL_PRINTING_SERIAL    250 //!< If printing over serial, we only need to update every second or so, as most of the info is available via OctoPrint
 #define LCD_TIMEOUT_TO_STATUS 30000ul //!< Generic timeout to status screen in ms, when no user action.
 #define LCD_TIMEOUT_TO_STATUS_BABYSTEP_Z 90000ul //!< Specific timeout for lcd_babystep_z screen in ms.
 
