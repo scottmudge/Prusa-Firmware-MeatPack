@@ -108,7 +108,22 @@ class MarlinSerial //: public Stream
     static void begin(long);
     static void end();
     static SERIAL_READ_TYPE peek(void);
-    static SERIAL_READ_TYPE read(void);
+    static SERIAL_READ_TYPE read(void)
+
+#ifdef ENABLE_MEATPACK
+    static FORCE_INLINE bool readResult(register SERIAL_READ_TYPE& out) {
+        // if the head isn't ahead of the tail, we don't have any characters
+        if (rx_buffer.head == rx_buffer.tail) {
+            return false;
+        }
+        else {
+            out = (SERIAL_READ_TYPE)rx_buffer.buffer[rx_buffer.tail];
+            rx_buffer.tail = (RX_BUFFER_IDX_TYPE)(rx_buffer.tail + 1) % RX_BUFFER_SIZE;
+            return true;
+        }
+    }
+#endif
+
     static void flush(void);
     
     static FORCE_INLINE int available(void){

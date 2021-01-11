@@ -29,8 +29,6 @@
 #ifndef MEATPACK_H_
 #define MEATPACK_H_
 
-#define ENABLE_MEATPACK
-
 #ifdef ENABLE_MEATPACK
 
 #define MeatPack_SecondNotPacked    0b11110000

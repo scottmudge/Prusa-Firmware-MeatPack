@@ -89,6 +89,9 @@ extern PGM_P sPrinterName;
 // then. (https://git.notfound.dk/mikkel/marlinfw/commit/f75f426dfae5190d3e637b247030d3a244968c2a)
 #define SERIAL_DISABLE_STEPPER_CHECK
 
+// Enable or disable G-Code packing.
+#define ENABLE_MEATPACK
+
 // This enables the serial port associated to the Bluetooth interface
 //#define BTENABLED              // Enable BT interface on AT90USB devices
 

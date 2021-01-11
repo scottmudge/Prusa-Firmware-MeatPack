@@ -410,8 +410,8 @@ void get_command()
 #ifdef ENABLE_MEATPACK
     // MeatPack Changes
     // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-      const int rec = MYSERIAL.read();
-      if (rec < 0) continue;
+      register uint8_t rec;
+      if (!MYSERIAL.read((SERIAL_READ_TYPE)rec)) continue;
 
       mp_handle_rx_char((uint8_t)rec);
       char c_res[2] = {0, 0};
