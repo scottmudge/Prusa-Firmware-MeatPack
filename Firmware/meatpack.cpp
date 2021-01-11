@@ -47,7 +47,7 @@ uint8_t MeatPackLookupTbl[16] = {
     '\0' // never used, 0b1111 is used to indicate next 8-bits is a full character
 };
 #else
-inline uint8_t get_char(register uint8_t in) {
+uint8_t FORCE_INLINE get_char(register uint8_t in) {
     switch (in) {
     case 0b0000:
         return '0';
@@ -137,7 +137,7 @@ inline void mp_handle_output_char(const uint8_t c) {
 // high = (packed & 0xF);
 
 //==========================================================================
-inline uint8_t mp_unpack_chars(const uint8_t pk, uint8_t* __restrict const chars_out) {
+uint8_t FORCE_INLINE mp_unpack_chars(const uint8_t pk, uint8_t* __restrict const chars_out) {
     register uint8_t out = 0;
 
 #ifdef USE_LOOKUP_TABLE
@@ -163,13 +163,7 @@ inline uint8_t mp_unpack_chars(const uint8_t pk, uint8_t* __restrict const chars
 
 
 //==========================================================================
-inline void mp_handle_rx_char_inner(const uint8_t c) {
-    // Handle normal data
-    // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-    if (mp_active == 0) {
-        mp_handle_output_char(c);
-        return;
-    }
+void FORCE_INLINE mp_handle_rx_char_inner(const uint8_t c) {
     if (mp_full_char_queue > 0) {
         mp_handle_output_char(c);
         if (mp_char_buf > 0) {
@@ -196,7 +190,7 @@ inline void mp_handle_rx_char_inner(const uint8_t c) {
 }
 
 //==========================================================================
-void mp_handle_cmd(const MeatPack_Command c) {
+void FORCE_INLINE mp_handle_cmd(const MeatPack_Command c) {
     switch (c) {
     case MPC_EnablePacking: {
         mp_active = 1;
@@ -233,25 +227,29 @@ void mp_handle_cmd(const MeatPack_Command c) {
 }
 
 //==========================================================================
-void mp_handle_rx_char(const uint8_t c) {
+char mp_handle_rx_char(const uint8_t c, char* const __restrict out) {
 
     // Check for commit complete
     // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
     if (c == (uint8_t)(MeatPack_CommandByte)) {
         if (mp_cmd_count > 0) {
             mp_cmd_active = 1;
-            mp_cmd_count = 0;
         }
-        else
-            ++mp_cmd_count;
-        return;
+        ++mp_cmd_count;
+        return 0;
     }
 
     if (mp_cmd_active > 0) {
-        mp_handle_cmd((MeatPack_Command)c);
         mp_cmd_active = 0;
-        return;
+        if ((char)c < 0) {
+            mp_handle_cmd((MeatPack_Command)c);
+            return 0;
+        }
     }
+
+    // Tell caller to use c directly.
+    if (mp_active == 0)
+        return -1;
 
     if (mp_cmd_count > 0) {
         mp_handle_rx_char_inner((uint8_t)(MeatPack_CommandByte));
@@ -259,12 +257,9 @@ void mp_handle_rx_char(const uint8_t c) {
     }
 
     mp_handle_rx_char_inner(c);
-}
 
-//==========================================================================
-uint8_t mp_get_result_char(char* const __restrict out) {
     if (mp_char_out_count > 0) {
-        const uint8_t res = mp_char_out_count;
+        const char res = (char)mp_char_out_count;
         for (register uint8_t i = 0; i < mp_char_out_count; ++i)
             out[i] = (char)mp_char_out_buf[i];
         mp_char_out_count = 0;

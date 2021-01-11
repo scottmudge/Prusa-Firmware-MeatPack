@@ -348,6 +348,8 @@ const unsigned int dropsegments=5; //everything with less than this number of st
 //The ASCII buffer for receiving from the serial:
 #define MAX_CMD_SIZE 96
 #define BUFSIZE 8
+// Max commands received in serial loop before releasing control
+#define MAX_CMD_REC_SEQUENTIAL 3 
 // The command header contains the following values:
 // 1st byte: the command source (CMDBUFFER_CURRENT_TYPE_USB, CMDBUFFER_CURRENT_TYPE_SDCARD, CMDBUFFER_CURRENT_TYPE_UI or CMDBUFFER_CURRENT_TYPE_CHAINED)
 // 2nd and 3rd byte (LSB first) contains a 16bit length of a command including its preceding comments.
