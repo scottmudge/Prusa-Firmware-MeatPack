@@ -34,9 +34,9 @@ uint8_t selectedSerialPort = 0;
   ring_buffer rx_buffer  =  { { 0 }, 0, 0 };
 #endif
 
-FORCE_INLINE void store_char(unsigned char c)
+FORCE_INLINE void store_char(const uint8_t c)
 {
-  int i = (unsigned int)(rx_buffer.head + 1) % RX_BUFFER_SIZE;
+  const RX_BUFFER_IDX_TYPE i = (RX_BUFFER_IDX_TYPE)(rx_buffer.head + 1) % RX_BUFFER_SIZE;
 
   // if we should be storing the received character into the location
   // just before the tail (meaning that the head would advance to the
@@ -67,7 +67,7 @@ ISR(M_USARTx_RX_vect)
 	else
 	{
 		// Read the input register.
-		unsigned char c = M_UDRx;
+		const uint8_t c = M_UDRx;
 		if (selectedSerialPort == 0)
 			store_char(c);
 #ifdef DEBUG_DUMP_TO_2ND_SERIAL
@@ -88,7 +88,7 @@ ISR(USART1_RX_vect)
 	else
 	{
 		// Read the input register.
-		unsigned char c = UDR1;
+        const uint8_t c = UDR1;
 		if (selectedSerialPort == 1)
 			store_char(c);
 #ifdef DEBUG_DUMP_TO_2ND_SERIAL
@@ -167,8 +167,7 @@ void MarlinSerial::end()
 }
 
 
-
-int MarlinSerial::peek(void)
+SERIAL_READ_TYPE MarlinSerial::peek(void)
 {
   if (rx_buffer.head == rx_buffer.tail) {
     return -1;
@@ -177,15 +176,15 @@ int MarlinSerial::peek(void)
   }
 }
 
-int MarlinSerial::read(void)
+SERIAL_READ_TYPE MarlinSerial::read(void)
 {
   // if the head isn't ahead of the tail, we don't have any characters
   if (rx_buffer.head == rx_buffer.tail) {
     return -1;
   } else {
-    unsigned char c = rx_buffer.buffer[rx_buffer.tail];
-    rx_buffer.tail = (unsigned int)(rx_buffer.tail + 1) % RX_BUFFER_SIZE;
-    return c;
+    const uint8_t c = rx_buffer.buffer[rx_buffer.tail];
+    rx_buffer.tail = (RX_BUFFER_IDX_TYPE)(rx_buffer.tail + 1) % RX_BUFFER_SIZE;
+    return (char)c;
   }
 }
 
@@ -370,6 +369,8 @@ void MarlinSerial::printFloat(double number, uint8_t digits)
     remainder -= toPrint; 
   } 
 }
+
+
 // Preinstantiate Objects //////////////////////////////////////////////////////
 
 
