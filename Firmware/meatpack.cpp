@@ -241,7 +241,8 @@ char mp_handle_rx_char(const uint8_t c, char* const __restrict out) {
 
     if (mp_cmd_active > 0) {
         mp_cmd_active = 0;
-        if ((char)c < 0) {
+        mp_cmd_count = 0;
+        if ((uint8_t)c > 240U) {
             mp_handle_cmd((MeatPack_Command)c);
             return 0;
         }

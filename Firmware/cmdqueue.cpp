@@ -396,14 +396,6 @@ void proc_commands() {
 }
 
 void FORCE_INLINE serial_char_proc(const char& serial_char) {
-    /*    if (selectedSerialPort == 1)
-    {
-        selectedSerialPort = 0;
-        MYSERIAL.write(serial_char); // for debuging serial line 2 in farm_mode
-        selectedSerialPort = 1;
-    } */ //RP - removed
-    TimeSent = _millis();
-    TimeNow = _millis();
 
     if (serial_char < 0)
         // Ignore extended ASCII characters. These characters have no meaning in the G-code apart from the file names
@@ -570,7 +562,17 @@ void get_command()
   while (
       ((MYSERIAL.available() > 0 && !saved_printing) || (MYSERIAL.available() > 0 && isPrintPaused)) &&
       !cmdqueue_serial_disabled &&
-      (cmdbuffer_received_serial_cmds < MAX_CMD_REC_SEQUENTIAL)) {  //is print is saved (crash detection or filament detection), dont process data from serial line
+      (cmdbuffer_received_serial_cmds < (uint8_t)MAX_CMD_REC_SEQUENTIAL)) {  //is print is saved (crash detection or filament detection), dont process data from serial line
+
+
+          /*    if (selectedSerialPort == 1)
+    {
+        selectedSerialPort = 0;
+        MYSERIAL.write(serial_char); // for debuging serial line 2 in farm_mode
+        selectedSerialPort = 1;
+    } */ //RP - removed
+      TimeSent = _millis();
+      TimeNow = _millis();
 
 #ifdef ENABLE_MEATPACK
     // MeatPack Changes
@@ -586,10 +588,8 @@ void get_command()
       }
       else if (c_count == 0) return;
       else {
-          for (uint8_t i = 0; i < c_count; ++i) {
-              // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+          for (uint8_t i = 0; i < (uint8_t)c_count; ++i) 
               serial_char_proc(c_res[i]);
-          }
       }
 #else
       serial_char_proc(MYSERIAL.read());
