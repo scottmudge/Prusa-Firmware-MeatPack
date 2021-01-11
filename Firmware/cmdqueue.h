@@ -73,6 +73,10 @@ extern bool is_buffer_empty();
 extern void get_command();
 extern uint16_t cmdqueue_calc_sd_length();
 
+#ifdef USE_DIRECT_SERIAL_RX
+extern void cmdqueue_init();
+#endif
+
 // Return True if a character was found
 static inline bool    code_seen(char code) { return (strchr_pointer = strchr(CMDBUFFER_CURRENT_STRING, code)) != NULL; }
 static inline bool    code_seen(const char *code) { return (strchr_pointer = strstr(CMDBUFFER_CURRENT_STRING, code)) != NULL; }

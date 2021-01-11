@@ -70,7 +70,7 @@
 
 #ifdef USE_DIRECT_SERIAL_RX
 typedef void (*serial_drain_func_t)(const uint8_t c);
-#define RX_BUFFER_SIZE 32
+#define RX_BUFFER_SIZE 64
 #else
 
 // Define constants and variables for buffering incoming serial data.  We're

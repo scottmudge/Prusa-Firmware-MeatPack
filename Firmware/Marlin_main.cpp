@@ -1024,6 +1024,12 @@ void setup()
 	selectedSerialPort = eeprom_read_byte((uint8_t *)EEPROM_SECOND_SERIAL_ACTIVE);
 	if (selectedSerialPort == 0xFF) selectedSerialPort = 0;
 	eeprom_update_byte((uint8_t *)EEPROM_SECOND_SERIAL_ACTIVE, selectedSerialPort);
+
+    // Setup direct drain to cmdqueue. Loop-based reads enabled on-demand.
+#ifdef USE_DIRECT_SERIAL_RX
+    cmdqueue_init();
+#endif
+
 	MYSERIAL.begin(BAUDRATE);
 	fdev_setup_stream(uartout, uart_putchar, NULL, _FDEV_SETUP_WRITE); //setup uart out stream
 	stdout = uartout;
@@ -1672,9 +1678,9 @@ void serial_read_stream() {
     char bytesToReceiveBuffer[4];
     for (int i=0; i<4; i++) {
         int data;
-        while ((data = MYSERIAL.read()) == -1) {};
+        // Get next byte
+        while ((data = MYSERIAL.read()) == -1) {}
         bytesToReceiveBuffer[i] = data;
-
     }
 
     // make it a uint32

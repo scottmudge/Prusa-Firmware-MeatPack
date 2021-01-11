@@ -36,7 +36,7 @@ static void null_drain_func(const uint8_t c) {}
 // Set to null function to save a couple cycles on comparator in interrupt. Null function will return immediately
 // and be optimized away as 'nop'.
 serial_drain_func_t serial_drain_func = &null_drain_func;
-serial_drain_func_t internal_drain_func = NULL;
+bool store_data = false;
 #endif
 
 #if UART_PRESENT(SERIAL_PORT)
@@ -84,7 +84,7 @@ ISR(M_USARTx_RX_vect)
 		const uint8_t c = M_UDRx;
         if (selectedSerialPort == 0) {
 #ifdef USE_DIRECT_SERIAL_RX
-            if (internal_drain_func) internal_drain_func(c);
+            if (store_data) store_char(c);
             else serial_drain_func(c);
 #else
             store_char(c);
@@ -115,7 +115,7 @@ ISR(USART1_RX_vect)
 		unsigned char c = UDR1;
         if (selectedSerialPort == 1) {
 #ifdef USE_DIRECT_SERIAL_RX
-            if (internal_drain_func) internal_drain_func(c);
+            if (store_data) store_char(c);
             else serial_drain_func(c);
 #else
             store_char(c);
@@ -205,11 +205,11 @@ void MarlinSerial::setDrainFunction(const serial_drain_func_t drain_func) {
 }
 
 void MarlinSerial::enableInternalDrain() {
-    internal_drain_func = &store_char;
+    store_data = true;
 }
 
 void MarlinSerial::disableInternalDrain() {
-    internal_drain_func = NULL;
+    store_data = false;
 }
 
 char  MarlinSerial::read(void)
