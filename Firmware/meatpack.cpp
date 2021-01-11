@@ -270,7 +270,6 @@ char mp_handle_rx_char(const uint8_t c, char* const __restrict out) {
 
 //==============================================================================
 void mp_reset_state() {
-    SERIAL_ECHOLNPGM("MP Reset");
     mp_char_out_count = 0;
     mp_cmd_active = MPC_None;
     mp_active = 0;

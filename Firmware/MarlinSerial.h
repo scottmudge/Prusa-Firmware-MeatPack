@@ -130,7 +130,7 @@ class MarlinSerial //: public Stream
       return (unsigned int)(RX_BUFFER_SIZE + rx_buffer.head - rx_buffer.tail) % RX_BUFFER_SIZE;
     }
 
-    static FORCE_INLINE void write(uint8_t c) {
+    static FORCE_INLINE void write(const uint8_t c) {
         if (selectedSerialPort == 0)
         {
             while (!((M_UCSRxA) & (1 << M_UDREx)));
