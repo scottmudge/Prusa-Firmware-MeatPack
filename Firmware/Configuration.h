@@ -80,6 +80,15 @@ extern PGM_P sPrinterName;
 // This determines the communication speed of the printer
 #define BAUDRATE 115200
 
+// If extended ASCII is not used or expected over serial, we can change the read() and peek()
+// return types to improve performance.
+#define SERIAL_ENABLE_EXTENDED_ASCII 0
+
+// If defined, checkRx() inside of stepper loops is disabled. It was added a 9 years ago, and introduces
+// stutters when printing with high speeds over serial. Solutions like OctoPrint didn't exist
+// then. (https://git.notfound.dk/mikkel/marlinfw/commit/f75f426dfae5190d3e637b247030d3a244968c2a)
+#define SERIAL_DISABLE_STEPPER_CHECK
+
 // This enables the serial port associated to the Bluetooth interface
 //#define BTENABLED              // Enable BT interface on AT90USB devices
 
@@ -548,7 +557,7 @@ enum CalibrationStatus
 // Try to maintain a minimum distance from the bed even when Z is
 // unknown when doing the following operations
 #define MIN_Z_FOR_LOAD    50
-#define MIN_Z_FOR_UNLOAD  20
+#define MIN_Z_FOR_UNLOAD  50
 #define MIN_Z_FOR_PREHEAT 10
 
 #include "Configuration_adv.h"
