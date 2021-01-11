@@ -6,11 +6,11 @@
 */
 
 #include "MeatPack.h"
+#include "Marlin.h"
 
 #ifdef ENABLE_MEATPACK
 
 #include "language.h"
-#include "Marlin.h"
 
 //#define MP_DEBUG
 

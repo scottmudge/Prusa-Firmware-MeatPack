@@ -24,6 +24,7 @@
 * ware like OctoPrint would also suffer this same micro-stuttering and poor print quality issue.
 * 
 */
+#include "Configuration.h"
 #include <stdint.h>
 
 #ifndef MEATPACK_H_

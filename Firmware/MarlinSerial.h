@@ -108,7 +108,7 @@ class MarlinSerial //: public Stream
     static void begin(long);
     static void end();
     static SERIAL_READ_TYPE peek(void);
-    static SERIAL_READ_TYPE read(void)
+    static SERIAL_READ_TYPE read(void);
 
 #ifdef ENABLE_MEATPACK
     static FORCE_INLINE bool readResult(register SERIAL_READ_TYPE& out) {
