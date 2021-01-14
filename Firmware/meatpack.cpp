@@ -6,11 +6,11 @@
 */
 
 #include "MeatPack.h"
+#include "Marlin.h"
 
 #ifdef ENABLE_MEATPACK
 
 #include "language.h"
-#include "Marlin.h"
 
 //#define MP_DEBUG
 
@@ -46,7 +46,7 @@ uint8_t MeatPackLookupTbl[16] = {
     '\0' // never used, 0b1111 is used to indicate next 8-bits is a full character
 };
 #else
-inline uint8_t get_char(register uint8_t in) {
+uint8_t FORCE_INLINE get_char(register uint8_t in) {
     switch (in) {
     case 0b0000:
         return '0';

@@ -83,17 +83,22 @@ extern PGM_P sPrinterName;
 // Enable g-code compression (see https://github.com/scottmudge/OctoPrint-MeatPack)
 #define ENABLE_MEATPACK
 
+// If extended ASCII is not used or expected over serial, we can change the read() and peek()
+#define SERIAL_ENABLE_EXTENDED_ASCII 0
+// return types to improve performance.
+
+// If defined, checkRx() inside of stepper loops is disabled. It was added a 9 years ago, and introduces
+// stutters when printing with high speeds over serial. Solutions like OctoPrint didn't exist
+// then. (https://git.notfound.dk/mikkel/marlinfw/commit/f75f426dfae5190d3e637b247030d3a244968c2a)
+#define SERIAL_DISABLE_STEPPER_CHECK
+
 // This enables the serial port associated to the Bluetooth interface
 //#define BTENABLED              // Enable BT interface on AT90USB devices
 
 // The following define selects which electronics board you have.
 // Please choose the name from boards.h that matches your setup
 
-
-
-
-
-
+#define DISABLE_PRUSA_COMMANDS
 
 // Define this to set a unique identifier for this printer, (Used by some programs to differentiate between machines)
 // You can use an online service to generate a random UUID. (eg http://www.uuidgenerator.net/version4)
@@ -490,7 +495,7 @@ your extruder heater takes 2 minutes to hit the target on heating.
 // which is not ass annoying as with the hardware PWM. On the other hand, if this frequency
 // is too low, you should also increment SOFT_PWM_SCALE.
 #define FAN_SOFT_PWM
-#define FAN_SOFT_PWM_BITS 4 //PWM bit resolution = 4bits, freq = 62.5Hz
+#define FAN_SOFT_PWM_BITS 5 //PWM bit resolution = 4bits, freq = 62.5Hz
 
 // Bed soft pwm
 #define HEATER_BED_SOFT_PWM_BITS 5 //PWM bit resolution = 5bits, freq = 31.25Hz

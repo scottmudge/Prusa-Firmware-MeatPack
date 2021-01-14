@@ -3,6 +3,11 @@
 #include "ultralcd.h"
 #include "MeatPack.h"
 
+// For optimizations in serial parsing.
+#define IS_DOLLAR_BIT  (1 << 0)
+#define IS_N_BIT    (1 << 1)
+#define IS_STAR_BIT  (1 << 2)
+
 extern bool Stopped;
 
 // Reserve BUFSIZE lines of length MAX_CMD_SIZE plus CMDBUFFER_RESERVE_FRONT.
@@ -22,6 +27,7 @@ bool cmdbuffer_front_already_processed = false;
 // Used for temporarely preventing accidental adding of Serial commands to the queue.
 // For now only check_file and the fancheck pause use this.
 bool cmdqueue_serial_disabled = false;
+char mp_read_char[2] = { 0,0 };
 
 int serial_count = 0;  //index of character read from serial line
 boolean comment_mode = false;
@@ -405,16 +411,15 @@ void get_command()
 #ifdef ENABLE_MEATPACK
     // MeatPack Changes
     // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-      const int rec = MYSERIAL.read();
-      if (rec < 0) continue;
+      char rec;
+      if (!MYSERIAL.readResult(rec)) continue;
 
       mp_handle_rx_char((uint8_t)rec);
-      char c_res[2] = {0, 0};
-      const uint8_t char_count = mp_get_result_char(c_res);
+      const uint8_t char_count = mp_get_result_char(mp_read_char);
       
       for (uint8_t i = 0; i < char_count; ++i) {
         // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-          char serial_char = c_res[i];
+          const char serial_char = mp_read_char[i];
 #else
       char serial_char = MYSERIAL.read();
 #endif
@@ -446,11 +451,19 @@ void get_command()
 	      if(!comment_mode){
 			  
 			  gcode_N = 0;
-	
+              uint8_t state_var = 0;
+
+              if (cmdbuffer[bufindw + CMDHDRSIZE] == 'N') state_var |= IS_N_BIT;
+              if ((strchr_pointer = strchr(cmdbuffer + bufindw + CMDHDRSIZE, '*')) != NULL) state_var |= IS_STAR_BIT;
 			  // Line numbers must be first in buffer
 	
-			  if ((strstr(cmdbuffer+bufindw+CMDHDRSIZE, "PRUSA") == NULL) &&
-				  (cmdbuffer[bufindw+CMDHDRSIZE] == 'N')) {
+			  
+#ifndef DISABLE_PRUSA_COMMANDS
+              if ((strstr(cmdbuffer+bufindw+CMDHDRSIZE, "PRUSA") == NULL) &&
+#else
+              if (
+#endif		 
+                  (state_var &  IS_N_BIT)) {
 	
 				  // Line number met. When sending a G-code over a serial line, each line may be stamped with its index,
 				  // and Marlin tests, whether the successive lines are stamped with an increasing line number ID
@@ -467,7 +480,7 @@ void get_command()
 					  return;
 				  }
 	
-				  if((strchr_pointer = strchr(cmdbuffer+bufindw+CMDHDRSIZE, '*')) != NULL)
+				  if (state_var & IS_STAR_BIT)
 				  {
 					  byte checksum = 0;
 					  char *p = cmdbuffer+bufindw+CMDHDRSIZE;
@@ -496,11 +509,12 @@ void get_command()
 	
 				  // Don't parse N again with code_seen('N')
 				  cmdbuffer[bufindw + CMDHDRSIZE] = '$';
+                  state_var |= IS_DOLLAR_BIT;
 				  //if no errors, continue parsing
 				  gcode_LastN = gcode_N;
 			}
 	        // if we don't receive 'N' but still see '*'
-	        if ((cmdbuffer[bufindw + CMDHDRSIZE] != 'N') && (cmdbuffer[bufindw + CMDHDRSIZE] != '$') && (strchr(cmdbuffer+bufindw+CMDHDRSIZE, '*') != NULL))
+	        if (!(state_var & IS_N_BIT) && !(state_var & IS_DOLLAR_BIT) && (state_var & IS_STAR_BIT))
 	        {
 	
 	            SERIAL_ERROR_START;
