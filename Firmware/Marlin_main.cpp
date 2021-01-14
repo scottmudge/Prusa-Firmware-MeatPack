@@ -714,10 +714,19 @@ static void factory_reset(char level)
             // Force the "Follow calibration flow" message at the next boot up.
             calibration_status_store(CALIBRATION_STATUS_Z_CALIBRATION);
 			eeprom_write_byte((uint8_t*)EEPROM_WIZARD_ACTIVE, 1); //run wizard
+#ifndef DISABLE_FARM_MODE
             farm_no = 0;
 			farm_mode = false;
 			eeprom_update_byte((uint8_t*)EEPROM_FARM_MODE, farm_mode);
             EEPROM_save_B(EEPROM_FARM_NUMBER, &farm_no);
+#else
+            {
+                int farm_no_tmp = 0;
+                int farm_mode_tmp = 0;
+                eeprom_update_byte((uint8_t*)EEPROM_FARM_MODE, farm_mode_tmp);
+                EEPROM_save_B(EEPROM_FARM_NUMBER, &farm_no_tmp);
+            }
+#endif
 
             eeprom_update_dword((uint32_t *)EEPROM_TOTALTIME, 0);
             eeprom_update_dword((uint32_t *)EEPROM_FILAMENTUSED, 0);
@@ -1050,11 +1059,13 @@ void setup()
 	setup_killpin();
 	setup_powerhold();
 
+#ifndef DISABLE_FARM_MODE
 	farm_mode = eeprom_read_byte((uint8_t*)EEPROM_FARM_MODE); 
 	EEPROM_read_B(EEPROM_FARM_NUMBER, &farm_no);
 	if ((farm_mode == 0xFF && farm_no == 0) || ((uint16_t)farm_no == 0xFFFF)) 
 		farm_mode = false; //if farm_mode has not been stored to eeprom yet and farm number is set to zero or EEPROM is fresh, deactivate farm mode
 	if ((uint16_t)farm_no == 0xFFFF) farm_no = 0;
+#endif
 	if (farm_mode)
 	{
 		no_response = true; //we need confirmation by recieving PRUSA thx
@@ -1369,10 +1380,12 @@ void setup()
     enable_z();
 #endif
 
+#ifndef DISABLE_FARM_MODE
 	farm_mode = eeprom_read_byte((uint8_t*)EEPROM_FARM_MODE);
 	EEPROM_read_B(EEPROM_FARM_NUMBER, &farm_no);
 	if ((farm_mode == 0xFF && farm_no == 0) || (farm_no == static_cast<int>(0xFFFF))) farm_mode = false; //if farm_mode has not been stored to eeprom yet and farm number is set to zero or EEPROM is fresh, deactivate farm mode
 	if (farm_no == static_cast<int>(0xFFFF)) farm_no = 0;
+#endif
 	if (farm_mode)
 	{
 		prusa_statistics(8);
@@ -5553,6 +5566,7 @@ if(eSoundMode!=e_SOUND_MODE_SILENT)
     See Internal Prusa commands.
     */
 	case 98:
+#ifndef DISABLE_FARM_MODE
 		farm_mode = 1;
 		PingTime = _millis();
 		eeprom_update_byte((unsigned char *)EEPROM_FARM_MODE, farm_mode);
@@ -5560,17 +5574,20 @@ if(eSoundMode!=e_SOUND_MODE_SILENT)
           SilentModeMenu = SILENT_MODE_OFF;
           eeprom_update_byte((unsigned char *)EEPROM_SILENT, SilentModeMenu);
           fCheckModeInit();                       // alternatively invoke printer reset
+#endif
 		break;
 
     /*! ### G99 - Deactivate farm mode <a href="https://reprap.org/wiki/G-code#G99:_Deactivate_farm_mode">G99: Deactivate farm mode</a>
  	Disables Prusa-specific Farm functions and g-code.
    */
 	case 99:
+#ifndef DISABLE_FARM_MODE
 		farm_mode = 0;
 		lcd_printer_connected();
 		eeprom_update_byte((unsigned char *)EEPROM_FARM_MODE, farm_mode);
 		lcd_update(2);
           fCheckModeInit();                       // alternatively invoke printer reset
+#endif
 		break;
 	default:
 		printf_P(PSTR("Unknown G code: %s \n"), cmdbuffer + bufindr + CMDHDRSIZE);

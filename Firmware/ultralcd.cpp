@@ -1054,6 +1054,7 @@ void lcd_status_screen()                          // NOT static due to using ins
 
 		lcdui_print_status_screen();
 
+#ifndef DISABLE_FARM_MODE
 		if (farm_mode)
 		{
 			farm_timer--;
@@ -1075,6 +1076,7 @@ void lcd_status_screen()                          // NOT static due to using ins
 				break;
 			}
 		} // end of farm_mode
+#endif
 
 		lcd_status_update_delay = 10;   /* redraw the main screen every second. This is easier then trying keep track of all things that change on the screen */
 		if (lcd_commands_type != LcdCommands::Idle)
@@ -4059,6 +4061,7 @@ static void prusa_statistics_case0(uint8_t statnr){
 }
 
 void prusa_statistics(int _message, uint8_t _fil_nr) {
+#ifndef DISABLE_FARM_MODE
 #ifdef DEBUG_DISABLE_PRUSA_STATISTICS
 	return;
 #endif //DEBUG_DISABLE_PRUSA_STATISTICS
@@ -4205,7 +4208,7 @@ void prusa_statistics(int _message, uint8_t _fil_nr) {
         break;
 	}
 	SERIAL_ECHOLN('}');	
-
+#endif
 }
 
 static void prusa_stat_printerstatus(int _status)
@@ -6480,6 +6483,7 @@ void unload_filament()
 
 static void lcd_farm_no()
 {
+#ifndef DISABLE_FARM_MODE
 	char step = 0;
 	int enc_dif = 0;
 	int _farmno = farm_no;
@@ -6542,7 +6546,7 @@ static void lcd_farm_no()
 
 		manage_heater();
 	} while (_ret == 0);
-
+#endif
 }
 
 
