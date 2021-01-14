@@ -88,10 +88,12 @@ unsigned int custom_message_state = 0;
 
 
 bool isPrintPaused = false;
+#ifndef DISABLE_FARM_MODE
 uint8_t farm_mode = 0;
 int farm_no = 0;
 int farm_timer = 8;
 uint8_t farm_status = 0;
+#endif
 bool printer_connected = true;
 
 unsigned long display_time; //just timer for showing pid finished message on lcd;

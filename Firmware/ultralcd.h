@@ -126,10 +126,17 @@ enum class CustomMsg : uint_least8_t
 extern CustomMsg custom_message_type;
 extern unsigned int custom_message_state;
 
+#ifndef DISABLE_FARM_MODE
 extern uint8_t farm_mode;
 extern int farm_no;
 extern int farm_timer;
 extern uint8_t farm_status;
+#else
+constexpr uint8_t farm_mode = 0;
+constexpr int farm_no = 0x0;
+constexpr int farm_timer = 0;
+constexpr uint8_t farm_status = 0;
+#endif
 
 #ifdef TMC2130
 #define SILENT_MODE_NORMAL 0
