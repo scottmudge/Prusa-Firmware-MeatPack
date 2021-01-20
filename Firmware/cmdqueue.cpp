@@ -1,7 +1,7 @@
 #include "cmdqueue.h"
 #include "cardreader.h"
 #include "ultralcd.h"
-#include "MeatPack.h"
+#include "meatpack.h"
 
 // For optimizations in serial parsing.
 #define IS_DOLLAR_BIT  (1 << 0)
