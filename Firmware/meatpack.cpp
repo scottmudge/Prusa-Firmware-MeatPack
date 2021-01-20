@@ -80,7 +80,7 @@ uint8_t mp_char_out_count = 0;     // Stores number of characters to be read out
 #ifdef USE_LOOKUP_TABLE
 // The 15 most-common characters used in G-code, ~90-95% of all g-code uses these characters
 // NOT storing this with PROGMEM, given how frequently this table will be accessed.
-uint8_t MeatPackLookupTbl[16] = {
+volatile uint8_t MeatPackLookupTbl[16] = {
     '0',	// 0000
     '1',	// 0001
     '2',	// 0010
@@ -160,7 +160,7 @@ void FORCE_INLINE mp_handle_output_char(const uint8_t c) {
     mp_char_out_buf[mp_char_out_count++] = c;
 
 #ifdef MP_DEBUG
-    if (mp_chars_decoded < 1024) {
+    if (mp_chars_decoded < 4096) {
         ++mp_chars_decoded;
         SERIAL_ECHOPGM("RB: ");
         MYSERIAL.print((char)c);
@@ -276,7 +276,10 @@ void FORCE_INLINE mp_echo_config_state() {
 
     // Validate config vars
 #ifdef USE_LOOKUP_TABLE
-    MeatPackLookupTbl[MeatPack_SpaceCharIdx] = (uint8_t)((mp_config & MPConfig_NoSpaces) ? MeatPack_SpaceCharReplace : ' ');
+    if (mp_config & MPConfig_NoSpaces)
+        MeatPackLookupTbl[MeatPack_SpaceCharIdx] = (uint8_t)(MeatPack_SpaceCharReplace);
+    else
+        MeatPackLookupTbl[MeatPack_SpaceCharIdx] = ' ';
 #endif
 
 }
