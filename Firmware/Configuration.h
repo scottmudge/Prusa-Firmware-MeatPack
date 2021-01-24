@@ -78,7 +78,7 @@ extern PGM_P sPrinterName;
 #define SERIAL_PORT 0
 
 // This determines the communication speed of the printer
-#define BAUDRATE 115200
+#define BAUDRATE 250000
 
 // Enable g-code compression (see https://github.com/scottmudge/OctoPrint-MeatPack)
 #define ENABLE_MEATPACK
