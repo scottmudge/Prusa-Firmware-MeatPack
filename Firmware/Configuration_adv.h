@@ -183,7 +183,7 @@
 #define ULTIPANEL_FEEDMULTIPLY
 
 // minimum time in microseconds that a movement needs to take if the buffer is emptied.
-#define DEFAULT_MINSEGMENTTIME        20000
+#define DEFAULT_MINSEGMENTTIME        40000
 
 // If defined the movements slow down when the look ahead buffer is only half full
 #define SLOWDOWN
@@ -353,7 +353,7 @@ const unsigned int dropsegments=5; //everything with less than this number of st
 
 //The ASCII buffer for receiving from the serial:
 #define MAX_CMD_SIZE 96
-#define BUFSIZE 4
+#define BUFSIZE 8
 // The command header contains the following values:
 // 1st byte: the command source (CMDBUFFER_CURRENT_TYPE_USB, CMDBUFFER_CURRENT_TYPE_SDCARD, CMDBUFFER_CURRENT_TYPE_UI or CMDBUFFER_CURRENT_TYPE_CHAINED)
 // 2nd and 3rd byte (LSB first) contains a 16bit length of a command including its preceding comments.
