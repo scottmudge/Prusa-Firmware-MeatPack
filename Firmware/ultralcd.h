@@ -131,7 +131,6 @@ extern int farm_timer;
 extern uint8_t farm_status;
 #else
 constexpr uint8_t farm_mode = 0;
-constexpr int farm_no = 0x0;
 constexpr int farm_timer = 0;
 constexpr uint8_t farm_status = 0;
 #endif
