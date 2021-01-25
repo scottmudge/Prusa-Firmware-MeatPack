@@ -2790,9 +2790,9 @@ static void gcode_G28(bool home_x_axis, long home_x_value, bool home_y_axis, lon
         if(homing_feedrate[Y_AXIS]<feedrate)
           feedrate = homing_feedrate[Y_AXIS];
         if (max_length(X_AXIS) > max_length(Y_AXIS)) {
-          feedrate *= sqrt(pow(max_length(Y_AXIS) / max_length(X_AXIS), 2) + 1);
+          feedrate *= sqrtf(powf(max_length(Y_AXIS) / max_length(X_AXIS), 2) + 1);
         } else {
-          feedrate *= sqrt(pow(max_length(X_AXIS) / max_length(Y_AXIS), 2) + 1);
+          feedrate *= sqrtf(powf(max_length(X_AXIS) / max_length(Y_AXIS), 2) + 1);
         }
         plan_buffer_line_destinationXYZE(feedrate/60);
         st_synchronize();
@@ -6348,7 +6348,7 @@ if(eSoundMode!=e_SOUND_MODE_SILENT)
 		for( j=0; j<=n; j++) {
 			sum = sum + (sample_set[j]-mean) * (sample_set[j]-mean);
 		}
-		sigma = sqrt( sum / (double (n+1)) );
+		sigma = sqrtf( sum / (double (n+1)) );
 
 		if (verbose_level > 1) {
 			SERIAL_PROTOCOL(n+1);
@@ -9475,7 +9475,7 @@ void mesh_plan_buffer_line(const float &x, const float &y, const float &z, const
             float len = abs(dx) + abs(dy);
             if (len > 0)
                 // Split to 3cm segments or shorter.
-                n_segments = int(ceil(len / 30.f));
+                n_segments = int(ceilf(len / 30.f));
         }
 
         if (n_segments > 1) {

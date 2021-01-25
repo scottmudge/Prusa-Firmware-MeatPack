@@ -81,7 +81,7 @@ typedef struct {
   uint32_t decelerate_after;                // The index of the step event on which to start decelerating
 
   // Fields used by the motion planner to manage acceleration
-//  float speed_x, speed_y, speed_z, speed_e;        // Nominal mm/sec for each axis
+  //  float speed_x, speed_y, speed_z, speed_e;        // Nominal mm/sec for each axis
   // The nominal speed for this block in mm/sec.
   // This speed may or may not be reached due to the jerk and acceleration limits.
   float nominal_speed;

@@ -6,7 +6,7 @@
 #include "rbuf.h"
 #include "macros.h"
 
-#define UART2_BAUD 250000
+#define UART2_BAUD 115200
 #define UART_BAUD_SELECT(baudRate,xtalCpu) (((float)(xtalCpu))/(((float)(baudRate))*8.0)-1.0+0.5)
 #define uart2_rxcomplete (UCSR2A & (1 << RXC2))
 #define uart2_txcomplete (UCSR2A & (1 << TXC2))

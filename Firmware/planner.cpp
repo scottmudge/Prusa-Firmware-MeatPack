@@ -194,8 +194,8 @@ void calculate_trapezoid_for_block(block_t *block, float entry_speed, float exit
   // initial_rate, final_rate in Hz.
   // Minimum stepper rate 120Hz, maximum 40kHz. If the stepper rate goes above 10kHz,
   // the stepper interrupt routine groups the pulses by 2 or 4 pulses per interrupt tick.
-  uint32_t initial_rate = ceil(entry_speed * block->speed_factor); // (step/min)
-  uint32_t final_rate   = ceil(exit_speed  * block->speed_factor); // (step/min)
+  uint32_t initial_rate = ceilf(entry_speed * block->speed_factor); // (step/min)
+  uint32_t final_rate   = ceilf(exit_speed  * block->speed_factor); // (step/min)
 
   // Limit minimal step rate (Otherwise the timer will overflow.)
   if (initial_rate < MINIMAL_STEP_RATE)
@@ -283,7 +283,7 @@ void calculate_trapezoid_for_block(block_t *block, float entry_speed, float exit
             // decelerate_steps=0: acceleration-only ramp, max_rate _is_ final_rate
             max_adv_steps = final_adv_steps;
         } else {
-            float max_rate = sqrt(acceleration_x2 * accelerate_steps + initial_rate_sqr);
+            float max_rate = sqrtf(acceleration_x2 * accelerate_steps + initial_rate_sqr);
             max_adv_steps = max_rate * block->adv_comp;
         }
     }
@@ -313,7 +313,7 @@ void calculate_trapezoid_for_block(block_t *block, float entry_speed, float exit
 FORCE_INLINE float max_allowable_entry_speed(float decceleration, float target_velocity, float distance) 
 {
     // assert(decceleration < 0);
-    return  sqrt(target_velocity*target_velocity-2*decceleration*distance);
+    return  sqrtf(target_velocity*target_velocity-2*decceleration*distance);
 }
 
 // Recalculates the motion plan according to the following algorithm:
@@ -823,18 +823,18 @@ void plan_buffer_line(float x, float y, float z, const float &e, float feed_rate
   // Calculate target position in absolute steps
   //this should be done after the wait, because otherwise a M92 code within the gcode disrupts this calculation somehow
   long target[4];
-  target[X_AXIS] = lround(x*cs.axis_steps_per_unit[X_AXIS]);
-  target[Y_AXIS] = lround(y*cs.axis_steps_per_unit[Y_AXIS]);
+  target[X_AXIS] = lroundf(x*cs.axis_steps_per_unit[X_AXIS]);
+  target[Y_AXIS] = lroundf(y*cs.axis_steps_per_unit[Y_AXIS]);
 #ifdef MESH_BED_LEVELING
     if (mbl.active){
-        target[Z_AXIS] = lround((z+mbl.get_z(x, y))*cs.axis_steps_per_unit[Z_AXIS]);
+        target[Z_AXIS] = lroundf((z+mbl.get_z(x, y))*cs.axis_steps_per_unit[Z_AXIS]);
     }else{
-        target[Z_AXIS] = lround(z*cs.axis_steps_per_unit[Z_AXIS]);
+        target[Z_AXIS] = lroundf(z*cs.axis_steps_per_unit[Z_AXIS]);
     }
 #else
-    target[Z_AXIS] = lround(z*cs.axis_steps_per_unit[Z_AXIS]);
+    target[Z_AXIS] = lroundf(z*cs.axis_steps_per_unit[Z_AXIS]);
 #endif // ENABLE_MESH_BED_LEVELING
-  target[E_AXIS] = lround(e*cs.axis_steps_per_unit[E_AXIS]);
+  target[E_AXIS] = lroundf(e*cs.axis_steps_per_unit[E_AXIS]);
   
   #ifdef PREVENT_DANGEROUS_EXTRUDE
   if(target[E_AXIS]!=position[E_AXIS])
@@ -1008,14 +1008,14 @@ Having the real displacement of the head, we can calculate the total movement le
   delta_mm[E_AXIS] = (target[E_AXIS]-position[E_AXIS])/cs.axis_steps_per_unit[E_AXIS];
   if ( block->steps_x.wide <=dropsegments && block->steps_y.wide <=dropsegments && block->steps_z.wide <=dropsegments )
   {
-    block->millimeters = fabs(delta_mm[E_AXIS]);
+    block->millimeters = fabsf(delta_mm[E_AXIS]);
   } 
   else
   {
     #ifndef COREXY
-      block->millimeters = sqrt(square(delta_mm[X_AXIS]) + square(delta_mm[Y_AXIS]) + square(delta_mm[Z_AXIS]));
+      block->millimeters = sqrtf(square(delta_mm[X_AXIS]) + square(delta_mm[Y_AXIS]) + square(delta_mm[Z_AXIS]));
 	#else
-	  block->millimeters = sqrt(square(delta_mm[X_HEAD]) + square(delta_mm[Y_HEAD]) + square(delta_mm[Z_AXIS]));
+	  block->millimeters = sqrtf(square(delta_mm[X_HEAD]) + square(delta_mm[Y_HEAD]) + square(delta_mm[Z_AXIS]));
     #endif	
   }
   float inverse_millimeters = 1.0/block->millimeters;  // Inverse millimeters to remove multiple divides 
@@ -1031,15 +1031,15 @@ Having the real displacement of the head, we can calculate the total movement le
   // Can we somehow differentiate the filling of the buffer at the start of a g-code from a buffer draining situation?
   if (moves_queued > 1 && moves_queued < (BLOCK_BUFFER_SIZE >> 1)) {
       // segment time in micro seconds
-      unsigned long segment_time = lround(1000000.0/inverse_second);
+      unsigned long segment_time = lroundf(1000000.0/inverse_second);
       if (segment_time < cs.minsegmenttime)
           // buffer is draining, add extra time.  The amount of time added increases if the buffer is still emptied more.
-          inverse_second=1000000.0/(segment_time+lround(2*(cs.minsegmenttime-segment_time)/moves_queued));
+          inverse_second=1000000.0/(segment_time+lroundf(2*(cs.minsegmenttime-static_cast<float>(segment_time))/moves_queued));
   }
 #endif // SLOWDOWN
 
   block->nominal_speed = block->millimeters * inverse_second; // (mm/sec) Always > 0
-  block->nominal_rate = ceil(block->step_event_count.wide * inverse_second); // (step/sec) Always > 0
+  block->nominal_rate = ceilf(block->step_event_count.wide * inverse_second); // (step/sec) Always > 0
 
   // Calculate and limit speed in mm/sec for each axis
   float current_speed[4];
@@ -1048,9 +1048,9 @@ Having the real displacement of the head, we can calculate the total movement le
   for(int i=0; i < 4; i++)
   {
     current_speed[i] = delta_mm[i] * inverse_second;
-	if(fabs(current_speed[i]) > max_feedrate[i])
+	if(fabsf(current_speed[i]) > max_feedrate[i])
 	{
-      speed_factor = min(speed_factor, max_feedrate[i] / fabs(current_speed[i]));
+      speed_factor = min(speed_factor, max_feedrate[i] / fabsf(current_speed[i]));
 	  maxlimit_status |= (1 << i);
 	}
   }
@@ -1075,14 +1075,14 @@ Having the real displacement of the head, we can calculate the total movement le
   float steps_per_mm = block->step_event_count.wide/block->millimeters;
   if(block->steps_x.wide == 0 && block->steps_y.wide == 0 && block->steps_z.wide == 0)
   {
-    block->acceleration_st = ceil(cs.retract_acceleration * steps_per_mm); // convert to: acceleration steps/sec^2
+    block->acceleration_st = ceilf(cs.retract_acceleration * steps_per_mm); // convert to: acceleration steps/sec^2
     #ifdef LIN_ADVANCE
     block->use_advance_lead = false;
     #endif
   }
   else
   {
-    block->acceleration_st = ceil(cs.acceleration * steps_per_mm); // convert to: acceleration steps/sec^2
+    block->acceleration_st = ceilf(cs.acceleration * steps_per_mm); // convert to: acceleration steps/sec^2
 
     #ifdef LIN_ADVANCE
     /**
@@ -1103,7 +1103,7 @@ Having the real displacement of the head, we can calculate the total movement le
         // M221/FLOW only adjusts for an incorrect source diameter
         float delta_e = (e - position_float[E_AXIS]);
 #endif
-        float delta_D = sqrt(sq(x - position_float[X_AXIS])
+        float delta_D = sqrtf(sq(x - position_float[X_AXIS])
                              + sq(y - position_float[Y_AXIS])
                              + sq(z - position_float[Z_AXIS]));
 
@@ -1120,7 +1120,7 @@ Having the real displacement of the head, we can calculate the total movement le
         else if (e_D_ratio > 0) {
             const float max_accel_per_s2 = cs.max_jerk[E_AXIS] / (extruder_advance_K * e_D_ratio);
             if (cs.acceleration > max_accel_per_s2) {
-                block->acceleration_st = ceil(max_accel_per_s2 * steps_per_mm);
+                block->acceleration_st = ceilf(max_accel_per_s2 * steps_per_mm);
                 #ifdef LA_DEBUG
                 SERIAL_ECHOLNPGM("LA: Block acceleration limited due to max E-jerk");
                 #endif
@@ -1166,7 +1166,7 @@ Having the real displacement of the head, we can calculate the total movement le
   float safe_speed = block->nominal_speed;
   bool  limited = false;
   for (uint8_t axis = 0; axis < 4; ++ axis) {
-      float jerk = fabs(current_speed[axis]);
+      float jerk = fabsf(current_speed[axis]);
       if (jerk > cs.max_jerk[axis]) {
           // The actual jerk is lower, if it has been limited by the XY jerk.
           if (limited) {
@@ -1395,16 +1395,16 @@ void plan_set_position(float x, float y, float z, const float &e)
 
     world2machine(x, y);
 
-  position[X_AXIS] = lround(x*cs.axis_steps_per_unit[X_AXIS]);
-  position[Y_AXIS] = lround(y*cs.axis_steps_per_unit[Y_AXIS]);
+  position[X_AXIS] = lroundf(x*cs.axis_steps_per_unit[X_AXIS]);
+  position[Y_AXIS] = lroundf(y*cs.axis_steps_per_unit[Y_AXIS]);
 #ifdef MESH_BED_LEVELING
   position[Z_AXIS] = mbl.active ? 
-    lround((z+mbl.get_z(x, y))*cs.axis_steps_per_unit[Z_AXIS]) :
-    lround(z*cs.axis_steps_per_unit[Z_AXIS]);
+    lroundf((z+mbl.get_z(x, y))*cs.axis_steps_per_unit[Z_AXIS]) :
+    lroundf(z*cs.axis_steps_per_unit[Z_AXIS]);
 #else
-  position[Z_AXIS] = lround(z*cs.axis_steps_per_unit[Z_AXIS]);
+  position[Z_AXIS] = lroundf(z*cs.axis_steps_per_unit[Z_AXIS]);
 #endif // ENABLE_MESH_BED_LEVELING
-  position[E_AXIS] = lround(e*cs.axis_steps_per_unit[E_AXIS]);
+  position[E_AXIS] = lroundf(e*cs.axis_steps_per_unit[E_AXIS]);
   #ifdef LIN_ADVANCE
   position_float[X_AXIS] = x;
   position_float[Y_AXIS] = y;
@@ -1425,7 +1425,7 @@ void plan_set_z_position(const float &z)
   #ifdef LIN_ADVANCE
   position_float[Z_AXIS] = z;
   #endif
-  position[Z_AXIS] = lround(z*cs.axis_steps_per_unit[Z_AXIS]);
+  position[Z_AXIS] = lroundf(z*cs.axis_steps_per_unit[Z_AXIS]);
   st_set_position(position[X_AXIS], position[Y_AXIS], position[Z_AXIS], position[E_AXIS]);
 }
 
@@ -1434,7 +1434,7 @@ void plan_set_e_position(const float &e)
   #ifdef LIN_ADVANCE
   position_float[E_AXIS] = e;
   #endif
-  position[E_AXIS] = lround(e*cs.axis_steps_per_unit[E_AXIS]);  
+  position[E_AXIS] = lroundf(e*cs.axis_steps_per_unit[E_AXIS]);  
   st_set_e_position(position[E_AXIS]);
 }
 
