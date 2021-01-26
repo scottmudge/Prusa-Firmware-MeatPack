@@ -3418,12 +3418,12 @@ void gcode_M701()
 
 		lcd_setstatuspgm(_T(MSG_LOADING_FILAMENT));
 		current_position[E_AXIS] += 40;
-		plan_buffer_line_curposXYZE(400 / 60); //fast sequence
+		plan_buffer_line_curposXYZE(250 / 60); //fast sequence
 		st_synchronize();
 
         raise_z_above(MIN_Z_FOR_LOAD, false);
 		current_position[E_AXIS] += 30;
-		plan_buffer_line_curposXYZE(400 / 60); //fast sequence
+		plan_buffer_line_curposXYZE(250 / 35); //fast sequence
 		
 		load_filament_final_feed(); //slow sequence
 		st_synchronize();
