@@ -770,8 +770,9 @@ static void factory_reset(char level)
             {
                 int farm_mode_tmp = 0;
                 eeprom_update_byte((uint8_t*)EEPROM_FARM_MODE, farm_mode_tmp);
+			}
 #endif
-            }
+            
 
             eeprom_update_dword((uint32_t *)EEPROM_TOTALTIME, 0);
             eeprom_update_dword((uint32_t *)EEPROM_FILAMENTUSED, 0);
