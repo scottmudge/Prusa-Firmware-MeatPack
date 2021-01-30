@@ -183,7 +183,7 @@
 #define ULTIPANEL_FEEDMULTIPLY
 
 // minimum time in microseconds that a movement needs to take if the buffer is emptied.
-#define DEFAULT_MINSEGMENTTIME        40000
+#define DEFAULT_MINSEGMENTTIME        32000
 
 // If defined the movements slow down when the look ahead buffer is only half full
 #define SLOWDOWN
