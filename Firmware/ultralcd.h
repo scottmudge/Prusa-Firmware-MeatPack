@@ -8,8 +8,6 @@
 #include "mesh_bed_calibration.h"
 #include "config.h"
 
-#include "config.h"
-
 extern void menu_lcd_longpress_func(void);
 extern void menu_lcd_charsetup_func(void);
 extern void menu_lcd_lcdupdate_func(void);
