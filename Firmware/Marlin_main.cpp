@@ -3303,14 +3303,6 @@ static void gcode_M600(bool automatic, float x_position, float y_position, float
     lastpos[Z_AXIS] = current_position[Z_AXIS];
     lastpos[E_AXIS] = current_position[E_AXIS];
 
-    // Push through some filament to eliminate blobs
-    current_position[E_AXIS] += (float)(FILAMENTCHANGE_RECFEED / 2.0f);
-    plan_buffer_line_curposXYZE((float)FILAMENTCHANGE_EFEED_FINAL / 2.0f);
-    st_synchronize();
-    current_position[E_AXIS] += (float)(FILAMENTCHANGE_RECFEED);
-    plan_buffer_line_curposXYZE((float)FILAMENTCHANGE_EFEED_FINAL);
-    st_synchronize();
-
     //Retract E
     current_position[E_AXIS] += e_shift;
     plan_buffer_line_curposXYZE(FILAMENTCHANGE_RFEED);
