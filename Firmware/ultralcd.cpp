@@ -6320,8 +6320,12 @@ void unload_filament()
     // If the system was sitting cold and is brought up to temp suddenly, without positive
     // pressure to push some filament through the tip, when it retracts, the filament won't 
     // have much to stick to in order to stretch thin, and the blob may get stuck on the way out.
-    current_position[E_AXIS] += 6;
-    plan_buffer_line_curposXYZE(140 / 60);
+    static constexpr float sPressureFR = (120.f / 60.f);
+    current_position[E_AXIS] += 10.0f;
+    plan_buffer_line_curposXYZE(sPressureFR);
+    st_synchronize();
+    current_position[E_AXIS] += 0.75;
+    plan_buffer_line_curposXYZE(sPressureFR / 2.0f);
     st_synchronize();
 	current_position[E_AXIS] -= 45;
 	plan_buffer_line_curposXYZE(5200 / 60);
