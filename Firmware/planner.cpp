@@ -1018,14 +1018,14 @@ Having the real displacement of the head, we can calculate the total movement le
 	  block->millimeters = sqrtf(square(delta_mm[X_HEAD]) + square(delta_mm[Y_HEAD]) + square(delta_mm[Z_AXIS]));
     #endif	
   }
-  float inverse_millimeters = 1.0/block->millimeters;  // Inverse millimeters to remove multiple divides 
+  const float inverse_millimeters = 1.0/block->millimeters;  // Inverse millimeters to remove multiple divides 
 
     // Calculate speed in mm/second for each axis. No divide by zero due to previous checks.
   float inverse_second = feed_rate * inverse_millimeters;
 
   uint8_t moves_queued = moves_planned();
 
-  // slow down when de buffer starts to empty, rather than wait at the corner for a buffer refill
+  // slow down when the buffer starts to empty, rather than wait at the corner for a buffer refill
 #ifdef SLOWDOWN
   {
     static_assert(BLOCK_BUFFER_SIZE == 16, "Regulation constants hard-coded for exact BLOCK_BUFFER_SIZE.");
