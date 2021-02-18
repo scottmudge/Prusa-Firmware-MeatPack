@@ -8170,6 +8170,9 @@ static bool lcd_selftest_fsensor(void)
 //! @retval false failed
 static bool selftest_irsensor()
 {
+#ifdef DISABLE_MMU
+    return true;
+#else
     class TempBackup
     {
     public:
@@ -8220,6 +8223,7 @@ static bool selftest_irsensor()
         }
     }
     return true;
+#endif
 }
 #endif //FILAMENT_SENSOR
 

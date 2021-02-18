@@ -50,7 +50,10 @@ namespace
     };
 }
 
+#ifndef DISABLE_MMU
 bool mmu_enabled = false;
+#endif
+
 bool mmu_ready = false;
 bool mmu_fil_loaded = false; //if true: blocks execution of duplicit T-codes
 
@@ -147,6 +150,7 @@ int8_t mmu_rx_start(void)
 //initialize mmu2 unit - first part - should be done at begining of startup process
 void mmu_init(void)
 {
+#ifndef DISABLE_MMU
 #ifdef MMU_HWRESET
 	digitalWrite(MMU_RST_PIN, HIGH);
 	pinMode(MMU_RST_PIN, OUTPUT);              //setup reset pin
@@ -155,6 +159,7 @@ void mmu_init(void)
 	_delay_ms(10);                             //wait 10ms for sure
 	mmu_reset();                               //reset mmu (HW or SW), do not wait for response
 	mmu_state = S::Init;
+#endif
 	SET_INPUT(IR_SENSOR_PIN); //input mode
 	WRITE(IR_SENSOR_PIN, 1); //pullup
 }
@@ -198,6 +203,9 @@ static bool activate_stealth_mode()
 //mmu main loop - state machine processing
 void mmu_loop(void)
 {
+#ifdef DISABLE_MMU
+    return;
+#else
 	static uint8_t mmu_attempt_nr = 0;
 //	printf_P(PSTR("MMU loop, state=%d\n"), mmu_state);
 	switch (mmu_state)
@@ -484,10 +492,12 @@ void mmu_loop(void)
 		}
 		return;		
 	}
+#endif
 }
 
 void mmu_reset(void)
 {
+#ifndef DISABLE_MMU
 #ifdef MMU_HWRESET                             //HW - pulse reset pin
 	digitalWrite(MMU_RST_PIN, LOW);
 	_delay_us(100);
@@ -495,16 +505,21 @@ void mmu_reset(void)
 #else                                          //SW - send X0 command
     mmu_puts_P(PSTR("X0\n"));
 #endif
+#endif
 }
 
 int8_t mmu_set_filament_type(uint8_t extruder, uint8_t filament)
 {
+#ifndef DISABLE_MMU
 	printf_P(PSTR("MMU <= 'F%d %d'\n"), extruder, filament);
 	mmu_printf_P(PSTR("F%d %d\n"), extruder, filament);
 	unsigned char timeout = MMU_TIMEOUT;       //10x100ms
 	while ((mmu_rx_ok() <= 0) && (--timeout))
 		delay_keep_alive(MMU_TODELAY);
 	return timeout?1:0;
+#else
+    return 0;
+#endif
 }
 
 //! @brief Enqueue MMUv2 command
@@ -514,6 +529,9 @@ int8_t mmu_set_filament_type(uint8_t extruder, uint8_t filament)
 //! If T or L command is enqueued, it marks filament loaded in AutoDeplete module.
 void mmu_command(MmuCmd cmd)
 {
+#ifdef DISABLE_MMU
+    return;
+#else
 	if ((cmd >= MmuCmd::T0) && (cmd <= MmuCmd::T4))
 	{
 		//disable extruder motor
@@ -530,6 +548,7 @@ void mmu_command(MmuCmd cmd)
 
 	mmu_cmd = cmd;
 	mmu_ready = false;
+#endif
 }
 
 //! @brief Rotate extruder idler to catch filament
@@ -565,6 +584,7 @@ bool can_extrude()
 }
 
 static void get_response_print_info(uint8_t move) {
+#ifndef DISABLE_MMU
 	printf_P(PSTR("mmu_get_response - begin move: "), move);
 	switch (move) {
 		case MMU_LOAD_MOVE: puts_P(PSTR("load")); break;
@@ -573,11 +593,12 @@ static void get_response_print_info(uint8_t move) {
 		case MMU_NO_MOVE: puts_P(PSTR("no move")); break;
 		default: puts_P(PSTR("error: unknown move")); break;
 	}
+#endif
 }
 
 bool mmu_get_response(uint8_t move)
 {
-
+#ifndef DISABLE_MMU
 	get_response_print_info(move);
 	KEEPALIVE_STATE(IN_PROCESS);
 	while (mmu_cmd != MmuCmd::None)
@@ -646,6 +667,9 @@ bool mmu_get_response(uint8_t move)
 	mmu_ready = false;
 //	printf_P(PSTR("mmu_get_response - end %d\n"), ret?1:0);
 	return ret;
+#else
+    return false;
+#endif
 }
 
 //! @brief Wait for active extruder to reach temperature set
@@ -663,6 +687,7 @@ void mmu_wait_for_heater_blocking()
 
 void manage_response(bool move_axes, bool turn_off_nozzle, uint8_t move)
 {
+#ifndef DISABLE_MMU
 	bool response = false;
 	mmu_print_saved = false;
 	bool lcd_update_was_enabled = false;
@@ -783,6 +808,7 @@ void manage_response(bool move_axes, bool turn_off_nozzle, uint8_t move)
 			tmc2130_set_pwr(E_AXIS, 1);
 			//printf_P(PSTR("E-axis enabled\n"));
 #endif //TMC2130
+#endif
 }
 
 //! @brief load filament to nozzle of multimaterial printer
@@ -793,6 +819,7 @@ void manage_response(bool move_axes, bool turn_off_nozzle, uint8_t move)
 //!
 void mmu_load_to_nozzle()
 {
+#ifndef DISABLE_MMU
 	st_synchronize();
 	
 	const bool saved_e_relative_mode = axis_relative_modes & E_AXIS_MASK;
@@ -858,12 +885,14 @@ void mmu_M600_wait_and_beep() {
 			delay_keep_alive(4);
 		}
 		WRITE(BEEPER, LOW);
+#endif
 }
 
 //! @brief load filament for mmu v2
 //! @par nozzle_temp nozzle temperature to load filament
 void mmu_M600_load_filament(bool automatic, float nozzle_temp)
-{ 
+{
+#ifndef DISABLE_MMU
     tmp_extruder = mmu_extruder;
     if (!automatic)
     {
@@ -897,6 +926,7 @@ void mmu_M600_load_filament(bool automatic, float nozzle_temp)
     mmu_load_to_nozzle();
     load_filament_final_feed();
     st_synchronize();
+#endif
 }
 
 
@@ -1068,12 +1098,14 @@ static const E_step ramming_sequence[] PROGMEM =
 //! @brief Unload sequence to optimize shape of the tip of the unloaded filament
 void mmu_filament_ramming()
 {
+#ifndef DISABLE_MMU
     for(uint8_t i = 0; i < (sizeof(ramming_sequence)/sizeof(E_step));++i)
     {
         current_position[E_AXIS] += pgm_read_float(&(ramming_sequence[i].extrude));
         plan_buffer_line_curposXYZE(pgm_read_float(&(ramming_sequence[i].feed_rate)));
         st_synchronize();
     }
+#endif
 }
 
 
@@ -1089,6 +1121,7 @@ void extr_unload_view()
 
 void extr_unload()
 { //unload just current filament for multimaterial printers
+#ifndef DISABLE_MMU
 #ifdef SNMM
 	float tmp_motor[3] = DEFAULT_PWM_MOTOR_CURRENT;
 	float tmp_motor_loud[3] = DEFAULT_PWM_MOTOR_CURRENT_LOUD;
@@ -1166,6 +1199,7 @@ void extr_unload()
 	{
 		show_preheat_nozzle_warning();
 	}
+#endif
 }
 
 //wrapper functions for loading filament
@@ -1377,6 +1411,7 @@ void lcd_mmu_load_to_nozzle(uint8_t filament_nr)
 #ifdef MMU_HAS_CUTTER
 void mmu_cut_filament(uint8_t filament_nr)
 {
+#ifndef DISABLE_MMU
     menu_back();
     bFilamentAction=false;                            // NOT in "mmu_load_to_nozzle_menu()"
     if (degHotend0() > EXTRUDE_MINTEMP)
@@ -1394,11 +1429,13 @@ void mmu_cut_filament(uint8_t filament_nr)
     {
         show_preheat_nozzle_warning();
     }
+#endif
 }
 #endif //MMU_HAS_CUTTER
 
 void mmu_eject_filament(uint8_t filament, bool recover)
 {
+#ifndef DISABLE_MMU
 //-//
 bFilamentAction=false;                            // NOT in "mmu_fil_eject_menu()"
 	if (filament < 5) 
@@ -1433,6 +1470,7 @@ bFilamentAction=false;                            // NOT in "mmu_fil_eject_menu(
 	{
 		puts_P(PSTR("Filament nr out of range!"));
 	}
+#endif
 }
 
 //! @brief Fits filament tip into heatbreak?
@@ -1443,6 +1481,7 @@ bFilamentAction=false;                            // NOT in "mmu_fil_eject_menu(
 //! @retval false Doesn't fit
 static bool can_load()
 {
+#ifndef DISABLE_MMU
     current_position[E_AXIS] += 60;
     plan_buffer_line_curposXYZE(MMU_LOAD_FEEDRATE);
     current_position[E_AXIS] -= 52;
@@ -1478,6 +1517,9 @@ static bool can_load()
         DEBUG_PUTS_P(PSTR(" failed."));
         return false;
     }
+#else
+    return true;
+#endif
 }
 
 //! @brief load more
@@ -1487,6 +1529,7 @@ static bool can_load()
 //! @retval false Failed, filament not detected by IR sensor after maximum number of attempts
 static bool load_more()
 {
+    #ifndef DISABLE_MMU
     for (uint8_t i = 0; i < MMU_IDLER_SENSOR_ATTEMPTS_NR; i++)
     {
         if (READ(IR_SENSOR_PIN) == 0) return true;
@@ -1495,14 +1538,19 @@ static bool load_more()
         manage_response(true, true, MMU_LOAD_MOVE);
     }
     return false;
+    #else
+    return true;
+#endif
 }
 
 static void increment_load_fail()
 {
+#ifndef DISABLE_MMU
     uint8_t mmu_load_fail = eeprom_read_byte((uint8_t*)EEPROM_MMU_LOAD_FAIL);
     uint16_t mmu_load_fail_tot = eeprom_read_word((uint16_t*)EEPROM_MMU_LOAD_FAIL_TOT);
     if(mmu_load_fail < 255) eeprom_update_byte((uint8_t*)EEPROM_MMU_LOAD_FAIL, mmu_load_fail + 1);
     if(mmu_load_fail_tot < 65535) eeprom_update_word((uint16_t*)EEPROM_MMU_LOAD_FAIL_TOT, mmu_load_fail_tot + 1);
+#endif
 }
 
 //! @brief continue loading filament
@@ -1529,6 +1577,9 @@ static void increment_load_fail()
 //! @enduml
 void mmu_continue_loading(bool blocking)
 {
+#ifdef DISABLE_MMU
+    return;
+#else
 	if (!ir_sensor_detected)
 	{
 	    mmu_command(MmuCmd::C0);
@@ -1602,4 +1653,5 @@ void mmu_continue_loading(bool blocking)
             break;
         }
     }
+#endif
 }

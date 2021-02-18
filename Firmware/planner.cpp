@@ -1027,6 +1027,7 @@ Having the real displacement of the head, we can calculate the total movement le
 
   // slow down when the buffer starts to empty, rather than wait at the corner for a buffer refill
 #ifdef SLOWDOWN
+#ifdef ALTERNATE_SLOWDOWN
   {
     static_assert(BLOCK_BUFFER_SIZE == 16, "Regulation constants hard-coded for exact BLOCK_BUFFER_SIZE.");
     static float slowdown_multiplier = 1.f;
@@ -1062,6 +1063,17 @@ Having the real displacement of the head, we can calculate the total movement le
     if (block->steps_e.wide != 0) inverse_second *= slowdown_multiplier;
     last_moves_queued = moves_queued;
   }
+#else
+//FIXME Vojtech: Why moves_queued > 1? Why not >=1?
+// Can we somehow differentiate the filling of the buffer at the start of a g-code from a buffer draining situation?
+if (moves_queued > 1 && moves_queued < (BLOCK_BUFFER_SIZE >> 1)) {
+    // segment time in micro seconds
+    unsigned long segment_time = lroundf(1000000.0 / inverse_second);
+    if (segment_time < cs.minsegmenttime)
+        // buffer is draining, add extra time.  The amount of time added increases if the buffer is still emptied more.
+        inverse_second = 1000000.0 / (segment_time + lroundf(2 * (cs.minsegmenttime - static_cast<float>(segment_time)) / moves_queued));
+}
+#endif //ALTERNATE_SLOWDOWN
 #endif // SLOWDOWN
 
   block->nominal_speed = block->millimeters * inverse_second; // (mm/sec) Always > 0

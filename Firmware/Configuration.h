@@ -83,6 +83,11 @@ extern PGM_P sPrinterName;
 // Enable g-code compression (see https://github.com/scottmudge/OctoPrint-MeatPack)
 #define ENABLE_MEATPACK
 
+// Disable MMU code to save space
+#define DISABLE_MMU
+
+//#define ALTERNATE_SLOWDOWN
+
 // If extended ASCII is not used or expected over serial, we can change the read() and peek()
 #define SERIAL_ENABLE_EXTENDED_ASCII 0
 // return types to improve performance.
