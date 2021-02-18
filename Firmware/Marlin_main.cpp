@@ -761,8 +761,11 @@ static void factory_reset(char level)
 		// Force the "Follow calibration flow" message at the next boot up.
 		calibration_status_store(CALIBRATION_STATUS_Z_CALIBRATION);
 		eeprom_write_byte((uint8_t*)EEPROM_WIZARD_ACTIVE, 1); //run wizard
+		
+#ifndef DISABLE_FARM_MODE
 		farm_mode = false;
 		eeprom_update_byte((uint8_t*)EEPROM_FARM_MODE, farm_mode);
+#endif
 
 #ifdef FILAMENT_SENSOR
 		fsensor_enable();
