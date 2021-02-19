@@ -611,7 +611,11 @@ static void fanSpeedErrorBeep(const char *serialMsg, const char *lcdMsg){
 void fanSpeedError(unsigned char _fan) {
 	if (get_message_level() != 0 && isPrintPaused) return;
 	//to ensure that target temp. is not set to zero in case that we are resuming print
-	if (card.sdprinting || is_usb_printing) {
+	if (
+#ifdef SDSUPPORT
+        card.sdprinting ||
+#endif
+        is_usb_printing) {
 		if (heating_status != 0) {
 			lcd_print_stop();
 		}
@@ -1382,11 +1386,13 @@ void temp_runaway_stop(bool isPreheat, bool isBed)
 {
 	cancel_heatup = true;
 	quickStop();
+#ifdef SDSUPPORT
 	if (card.sdprinting)
 	{
 		card.sdprinting = false;
 		card.closefile();
 	}
+#endif
 	// Clean the input command queue 
 	// This is necessary, because in command queue there can be commands which would later set heater or bed temperature.
 	cmdqueue_reset();

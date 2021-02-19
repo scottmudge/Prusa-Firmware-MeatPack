@@ -5,9 +5,13 @@
 
 #include <inttypes.h>
 
-
+#ifndef DISABLE_MMU
 extern bool mmu_enabled;
+#else
+static constexpr bool mmu_enabled = false;
+#endif
 extern bool mmu_fil_loaded;
+
 
 extern uint8_t mmu_extruder;
 

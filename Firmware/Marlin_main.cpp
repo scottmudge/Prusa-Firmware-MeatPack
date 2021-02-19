@@ -214,7 +214,9 @@ static LongTimer crashDetTimer;
 bool mesh_bed_leveling_flag = false;
 bool mesh_bed_run_from_menu = false;
 
+#ifdef SDSUPPORT
 bool prusa_sd_card_upload = false;
+#endif
 
 unsigned int status_number = 0;
 
@@ -224,9 +226,9 @@ unsigned int heating_status_counter;
 bool loading_flag = false;
 
 
-
+#ifndef DISABLE_MMU
 char snmm_filaments_used = 0;
-
+#endif
 
 bool fan_state[2];
 int fan_edge_counter[2];
@@ -453,8 +455,8 @@ static void print_time_remaining_init();
 static void wait_for_heater(long codenum, uint8_t extruder);
 static void gcode_G28(bool home_x_axis, bool home_y_axis, bool home_z_axis);
 static void gcode_M105(uint8_t extruder);
-static void temp_compensation_start();
-static void temp_compensation_apply();
+static void temp_compensation_start() {}
+static void temp_compensation_apply() {}
 
 static bool get_PRUSA_SN(char* SN);
 
@@ -486,27 +488,11 @@ void serial_echopair_P(const char *s_P, unsigned long v)
 #endif
 }
 
-#ifdef SDSUPPORT
-  #include "SdFatUtil.h"
-  int freeMemory() { return SdFatUtil::FreeRam(); }
-#else
-  extern "C" {
-    extern unsigned int __bss_end;
-    extern unsigned int __heap_start;
-    extern void *__brkval;
+#include "SdFatUtil.h"
 
-    int freeMemory() {
-      int free_memory;
-
-      if ((int)__brkval == 0)
-        free_memory = ((int)&free_memory) - ((int)&__bss_end);
-      else
-        free_memory = ((int)&free_memory) - ((int)__brkval);
-
-      return free_memory;
-    }
-  }
-#endif //!SDSUPPORT
+#ifndef SDSUPPORT
+#undef UVLO_SUPPORT
+#endif
 
 void setup_killpin()
 {
@@ -598,8 +584,10 @@ void crashdet_stop_and_save_print2()
 	cli();
 	planner_abort_hard(); //abort printing
 	cmdqueue_reset(); //empty cmdqueue
+#ifdef SDSUPPORT
 	card.sdprinting = false;
 	card.closefile();
+#endif
   // Reset and re-enable the stepper timer just before the global interrupts are enabled.
   st_reset_timer();
 	sei();
@@ -761,16 +749,12 @@ static void factory_reset(char level)
 		// Force the "Follow calibration flow" message at the next boot up.
 		calibration_status_store(CALIBRATION_STATUS_Z_CALIBRATION);
 		eeprom_write_byte((uint8_t*)EEPROM_WIZARD_ACTIVE, 1); //run wizard
-
+		
 #ifndef DISABLE_FARM_MODE
 		farm_mode = false;
 		eeprom_update_byte((uint8_t*)EEPROM_FARM_MODE, farm_mode);
-#else
-        {
-            int farm_mode_tmp = 0;
-            eeprom_update_byte((uint8_t*)EEPROM_FARM_MODE, farm_mode_tmp);
-        }
 #endif
+
 #ifdef FILAMENT_SENSOR
 		fsensor_enable();
 		fsensor_autoload_set(true);
@@ -1279,7 +1263,7 @@ void setup()
 
 	SERIAL_ECHO_START;
 	SERIAL_ECHORPGM(_n(" Free Memory: "));////MSG_FREE_MEMORY
-	SERIAL_ECHO(freeMemory());
+	SERIAL_ECHO(SdFatUtil::FreeRam());
 	SERIAL_ECHORPGM(_n("  PlannerBufferBytes: "));////MSG_PLANNER_BUFFER_BYTES
 	SERIAL_ECHOLN((int)sizeof(block_t)*BLOCK_BUFFER_SIZE);
 	//lcd_update_enable(false); // why do we need this?? - andre
@@ -1416,12 +1400,13 @@ void setup()
 #ifndef DISABLE_FARM_MODE
 	farm_mode = eeprom_read_byte((uint8_t*)EEPROM_FARM_MODE);
 	if (farm_mode == 0xFF) farm_mode = false; //if farm_mode has not been stored to eeprom yet and farm number is set to zero or EEPROM is fresh, deactivate farm mode
-#endif
 	if (farm_mode)
 	{
 		prusa_statistics(8);
 	}
+#endif
 
+#ifdef SDSUPPORT
 	// Enable Toshiba FlashAir SD card / WiFi enahanced card.
 	card.ToshibaFlashAir_enable(eeprom_read_byte((unsigned char*)EEPROM_TOSHIBA_FLASH_AIR_COMPATIBLITY) == 1);
 
@@ -1472,6 +1457,7 @@ void setup()
 	else
 		printf_P(PSTR("Card NG!\n"));
 #endif //DEBUG_SD_SPEED_TEST
+#endif
 
     eeprom_init();
 #ifdef SNMM
@@ -1698,6 +1684,7 @@ void trace();
 char chunk[CHUNK_SIZE+SAFETY_MARGIN];
 int chunkHead = 0;
 
+#ifdef SDSUPPORT
 void serial_read_stream() {
 
     setAllTargetHotends(0);
@@ -1762,6 +1749,7 @@ void serial_read_stream() {
         }
     }
 }
+#endif
 
 /**
 * Output a "busy" message at regular intervals
@@ -1851,12 +1839,14 @@ void loop()
     }
 #endif
 
+#ifdef SDSUPPORT
     if (prusa_sd_card_upload)
     {
         //we read byte-by byte
         serial_read_stream();
     } 
-    else 
+    else
+#endif
     {
 
         get_command();
@@ -4067,12 +4057,16 @@ void process_commands()
 
         #endif // SDSUPPORT
 
-    } else if (code_seen_P(PSTR("M28"))) { // PRUSA M28
+    }
+#ifdef SDSUPPORT
+        else if (code_seen_P(PSTR("M28"))) { // PRUSA M28
         trace();
         prusa_sd_card_upload = true;
         card.openFileWrite(strchr_pointer+4);
 
-	} else if (code_seen_P(PSTR("SN"))) { // PRUSA SN
+	}
+#endif
+        else if (code_seen_P(PSTR("SN"))) { // PRUSA SN
         char SN[20];
         eeprom_read_block(SN, (uint8_t*)EEPROM_PRUSA_SN, 20);
         if (SN[19])
@@ -6063,7 +6057,7 @@ if(eSoundMode!=e_SOUND_MODE_SILENT)
 		gcode_M45(only_Z, verbosity_level);
     }
 	break;
-
+#ifdef SDSUPPORT
     /*!
 	### M46 - Show the assigned IP address <a href="https://reprap.org/wiki/G-code#M46:_Show_the_assigned_IP_address">M46: Show the assigned IP address.</a>
     */
@@ -6090,7 +6084,7 @@ if(eSoundMode!=e_SOUND_MODE_SILENT)
         }
         break;
     }
-
+#endif
     /*!
 	### M47 - Show end stops dialog on the display <a href="https://reprap.org/wiki/G-code#M47:_Show_end_stops_dialog_on_the_display">M47: Show end stops dialog on the display</a>
     */
@@ -6815,7 +6809,9 @@ Sigma_Exit:
       }
 	  //in the end of print set estimated time to end of print and extruders used during print to default values for next print
 	  print_time_remaining_init();
+#ifndef DISABLE_MMU
 	  snmm_filaments_used = 0;
+#endif
       break;
 
     /*!
@@ -8072,58 +8068,61 @@ Sigma_Exit:
 		bool automatic = false;
 		
         //Retract extruder
-        if(code_seen('E'))
-        {
-          e_shift_init = code_value();
-        }
-        else
-        {
+//         if(code_seen('E'))
+//         {
+//           e_shift_init = code_value();
+//         }
+//         else
+//         {
           #ifdef FILAMENTCHANGE_FIRSTRETRACT
             e_shift_init = FILAMENTCHANGE_FIRSTRETRACT ;
           #endif
-        }
+    //    }
 
 		//currently don't work as we are using the same unload sequence as in M702, needs re-work 
-		if (code_seen('L'))
-		{
-			e_shift_late = code_value();
-		}
-		else
-		{
+// 		if (code_seen('L'))
+// 		{
+// 			e_shift_late = code_value();
+// 		}
+// 		else
+// 		{
 		  #ifdef FILAMENTCHANGE_FINALRETRACT
 			e_shift_late = FILAMENTCHANGE_FINALRETRACT;
 		  #endif	
-		}
+//		}
 
         //Lift Z
-        if(code_seen('Z'))
-        {
-          z_shift = code_value();
-        }
-        else
-        {
+//         if(code_seen('Z'))
+//         {
+//           z_shift = code_value();
+//         }
+//         else
+//         {
 			z_shift = gcode_M600_filament_change_z_shift<uint8_t>();
-        }
+ //       }
 		//Move XY to side
-        if(code_seen('X'))
-        {
-          x_position = code_value();
-        }
-        else
-        {
+//         if(code_seen('X'))
+//         {
+//           x_position = code_value();
+//         }
+//         else
+//         {
+        // Only move while priting, otherwise leave it alone.
+        if (is_usb_printing || IS_SD_PRINTING) {
           #ifdef FILAMENTCHANGE_XPOS
-			x_position = FILAMENTCHANGE_XPOS;
+                x_position = FILAMENTCHANGE_XPOS;
           #endif
-        }
-        if(code_seen('Y'))
-        {
-          y_position = code_value();
-        }
-        else
-        {
+ //       }
+//         if(code_seen('Y'))
+//         {
+//           y_position = code_value();
+//         }
+//         else
+//         {
           #ifdef FILAMENTCHANGE_YPOS
             y_position = FILAMENTCHANGE_YPOS ;
           #endif
+//        }
         }
 
 		if (mmu_enabled && code_seen_P(PSTR("AUTO")))
@@ -8892,7 +8891,9 @@ Sigma_Exit:
               }
           }
           st_synchronize();
+#ifndef DISABLE_MMU
           snmm_filaments_used |= (1 << tmp_extruder); //for stop print
+#endif
 
           if (mmu_enabled)
           {
@@ -11372,11 +11373,13 @@ void stop_and_save_print_to_ram(float z_move, float e_move)
 	unsigned char nplanner_blocks;
 #endif
 	unsigned char nlines;
-	uint16_t sdlen_planner;
-	uint16_t sdlen_cmdqueue;
+
 	
 
 	cli();
+#ifdef SDSUPPORT
+    uint16_t sdlen_planner;
+    uint16_t sdlen_cmdqueue;
 	if (card.sdprinting) {
 #if 0
 		nplanner_blocks = number_of_blocks();
@@ -11389,7 +11392,9 @@ void stop_and_save_print_to_ram(float z_move, float e_move)
 		saved_printing_type = PRINTING_TYPE_SD;
 
 	}
-	else if (is_usb_printing) { //reuse saved_sdpos for storing line number
+	else
+#endif
+        if (is_usb_printing) { //reuse saved_sdpos for storing line number
 		 saved_sdpos = gcode_LastN; //start with line number of command added recently to cmd queue
 		 //reuse planner_calc_sd_length function for getting number of lines of commands in planner:
 		 nlines = planner_calc_sd_length(); //number of lines of commands in planner 
@@ -11510,7 +11515,9 @@ void stop_and_save_print_to_ram(float z_move, float e_move)
 	saved_extruder_relative_mode = axis_relative_modes & E_AXIS_MASK;
 	saved_fanSpeed = fanSpeed;
 	cmdqueue_reset(); //empty cmdqueue
+#ifdef SDSUPPORT
 	card.sdprinting = false;
+#endif
 //	card.closefile();
 	saved_printing = true;
   // We may have missed a stepper timer interrupt. Be safe than sorry, reset the stepper timer before re-enabling interrupts.
@@ -11615,12 +11622,15 @@ void restore_print_from_ram_and_continue(float e_move)
 
 	memcpy(current_position, saved_pos, sizeof(saved_pos));
 	memcpy(destination, current_position, sizeof(destination));
+#ifdef SDSUPPORT
 	if (saved_printing_type == PRINTING_TYPE_SD) { //was sd printing
 		card.setIndex(saved_sdpos);
 		sdpos_atomic = saved_sdpos;
 		card.sdprinting = true;
 	}
-	else if (saved_printing_type == PRINTING_TYPE_USB) { //was usb printing
+	else
+#endif
+    if (saved_printing_type == PRINTING_TYPE_USB) { //was usb printing
 		gcode_LastN = saved_sdpos; //saved_sdpos was reused for storing line number when usb printing
 		serial_count = 0; 
 		FlushSerialRequestResend();
@@ -11684,10 +11694,12 @@ uint8_t calc_percent_done()
         percent_done = print_percent_done_normal;
     }
 #endif //TMC2130
+#ifdef SDSUPPORT
     else
     {
         percent_done = card.percentDone();
     }
+#endif
     return percent_done;
 }
 
