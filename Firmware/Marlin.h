@@ -328,7 +328,11 @@ void save_statistics(unsigned long _total_filament_used, unsigned long _total_pr
 extern unsigned int heating_status;
 extern unsigned int status_number;
 extern unsigned int heating_status_counter;
+
+#ifndef DISABLE_MMU
 extern char snmm_filaments_used;
+#endif
+
 extern unsigned long PingTime;
 extern unsigned long NcTime;
 extern bool no_response;

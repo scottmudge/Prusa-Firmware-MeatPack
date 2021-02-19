@@ -17,55 +17,44 @@
  * along with the Arduino SdFat Library.  If not, see
  * <http://www.gnu.org/licenses/>.
  */
-#include "Marlin.h"
-
-#ifdef SDSUPPORT
 #include "SdFatUtil.h"
 
-//------------------------------------------------------------------------------
-/** Amount of free RAM
- * \return The number of free bytes.
- */
-#ifdef __arm__
-extern "C" char* sbrk(int incr);
-int SdFatUtil::FreeRam() {
-  char top;
-  return &top - reinterpret_cast<char*>(sbrk(0));
-}
-#else  // __arm__
-extern char *__brkval;
+extern char* __brkval;
 extern char __bss_end;
 /** Amount of free RAM
  * \return The number of free bytes.
  */
 int SdFatUtil::FreeRam() {
-  char top;
-  return __brkval ? &top - __brkval : &top - &__bss_end;
+    char top;
+    return __brkval ? &top - __brkval : &top - &__bss_end;
 }
-#endif  // __arm
 
 void SdFatUtil::set_stack_guard()
-{	
-	uint32_t *stack_guard;
+{
+    uint32_t* stack_guard;
 
-	stack_guard = (uint32_t*)&__bss_end;
+    stack_guard = (uint32_t*)&__bss_end;
     *stack_guard = STACK_GUARD_TEST_VALUE;
 }
 
 bool SdFatUtil::test_stack_integrity()
 {
-	uint32_t* stack_guard = (uint32_t*)&__bss_end;
-	return (*stack_guard == STACK_GUARD_TEST_VALUE);
+    uint32_t* stack_guard = (uint32_t*)&__bss_end;
+    return (*stack_guard == STACK_GUARD_TEST_VALUE);
 }
 
 uint32_t SdFatUtil::get_stack_guard_test_value()
 {
-	uint32_t* stack_guard;
-	uint32_t output;
-	stack_guard = (uint32_t*)&__bss_end;
-	output = *stack_guard;
-	return(output);
+    uint32_t* stack_guard;
+    uint32_t output;
+    stack_guard = (uint32_t*)&__bss_end;
+    output = *stack_guard;
+    return(output);
 }
+
+#ifdef SDSUPPORT
+#include "Marlin.h"
+
 //------------------------------------------------------------------------------
 /** %Print a string in flash memory.
  *
