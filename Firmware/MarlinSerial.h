@@ -73,13 +73,28 @@
 // is the index of the location from which to read.
 #define RX_BUFFER_SIZE 128
 
+// These are always positive, and unless we need a 16-bit var, 8-bit is faster
+#if (RX_BUFFER_SIZE < UINT8_MAX)
+#define RX_BUFFER_IDX_TYPE uint8_t
+#else
+#define RX_BUFFER_IDX_TYPE uint16_t
+#endif
+
+// changed int return type -> char, as extended ASCII range is not used,
+// and 16-bit returns cannot be stored in single register, making function calls more expensive.
+#if (SERIAL_ENABLE_EXTENDED_ASCII == 1)
+#define SERIAL_READ_TYPE int
+#else
+#define SERIAL_READ_TYPE char
+#endif
+
 extern uint8_t selectedSerialPort;
 
 struct ring_buffer
 {
   unsigned char buffer[RX_BUFFER_SIZE];
-  int head;
-  int tail;
+  RX_BUFFER_IDX_TYPE head;
+  RX_BUFFER_IDX_TYPE tail;
 };
 
 #if UART_PRESENT(SERIAL_PORT)
@@ -92,39 +107,55 @@ class MarlinSerial //: public Stream
   public:
     static void begin(long);
     static void end();
-    static int peek(void);
-    static int read(void);
+    static SERIAL_READ_TYPE peek(void);
+    static SERIAL_READ_TYPE read(void);
+
+#ifdef ENABLE_MEATPACK
+    static FORCE_INLINE bool readResult(register SERIAL_READ_TYPE& out) {
+        // if the head isn't ahead of the tail, we don't have any characters
+        if (rx_buffer.head == rx_buffer.tail) {
+            return false;
+        }
+        else {
+            out = (SERIAL_READ_TYPE)rx_buffer.buffer[rx_buffer.tail];
+            rx_buffer.tail = (RX_BUFFER_IDX_TYPE)(rx_buffer.tail + 1) % RX_BUFFER_SIZE;
+            return true;
+        }
+    }
+#endif
+
     static void flush(void);
     
-    static /*FORCE_INLINE*/ int available(void)
-    {
+    static FORCE_INLINE int available(void){
       return (unsigned int)(RX_BUFFER_SIZE + rx_buffer.head - rx_buffer.tail) % RX_BUFFER_SIZE;
     }
-    /*
-    FORCE_INLINE void write(uint8_t c)
-    {
-      while (!((M_UCSRxA) & (1 << M_UDREx)))
-        ;
 
-      M_UDRx = c;
+    static FORCE_INLINE void write(const uint8_t c) {
+        if (selectedSerialPort == 0)
+        {
+            while (!((M_UCSRxA) & (1 << M_UDREx)));
+            M_UDRx = c;
+        }
+        else if (selectedSerialPort == 1)
+        {
+            while (!((UCSR1A) & (1 << UDRE1)));
+            UDR1 = c;
+        }
     }
-    */
-	static void write(uint8_t c)
-	{
-		if (selectedSerialPort == 0)
-		{
-			while (!((M_UCSRxA) & (1 << M_UDREx)));
-			M_UDRx = c;
-		}
-		else if (selectedSerialPort == 1)
-		{
-			while (!((UCSR1A) & (1 << UDRE1)));
-			UDR1 = c;
-		}
-	}
+
+    static FORCE_INLINE void write(const uint8_t* buffer, size_t size) {
+        while (size--)
+            write(*buffer++);
+    }
+
+    static FORCE_INLINE void write(const char* str) {
+        while (*str)
+            write(*str++);
+    }
     
     static void checkRx(void)
     {
+#ifndef SERIAL_DISABLE_STEPPER_CHECK
         if (selectedSerialPort == 0) {
             if((M_UCSRxA & (1<<M_RXCx)) != 0) {
                 // Test for a framing error.
@@ -174,6 +205,7 @@ class MarlinSerial //: public Stream
                 }
             }
         }
+#endif
     }
     
     
@@ -182,32 +214,11 @@ class MarlinSerial //: public Stream
     static void printFloat(double, uint8_t);
     
     
-  public:
-    
-    static /*FORCE_INLINE*/ void write(const char *str)
-    {
-      while (*str)
-        write(*str++);
-    }
-
-
-    static /*FORCE_INLINE*/ void write(const uint8_t *buffer, size_t size)
-    {
-      while (size--)
-        write(*buffer++);
-    }
-
-/*    static FORCE_INLINE void print(const String &s)
-    {
-      for (int i = 0; i < (int)s.length(); i++) {
-        write(s[i]);
-      }
-    }*/
-    
-    static FORCE_INLINE void print(const char *str)
-    {
+  public:    
+    static FORCE_INLINE void print(const char *str) {
       write(str);
     }
+
     static void print(char, int = BYTE);
     static void print(unsigned char, int = BYTE);
     static void print(int, int = DEC);
