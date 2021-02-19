@@ -1853,8 +1853,15 @@ void loop()
 {
 	KEEPALIVE_STATE(NOT_BUSY);
 
+    if (isPrintPaused && saved_printing_type == PRINTING_TYPE_USB) //keep believing that usb is being printed. Prevents accessing dangerous menus while pausing.
+    {
+        is_usb_printing = true;
+    }
 	if ((usb_printing_counter > 0) && ((_millis()-_usb_timer) > 1000))
 	{
+        // Reset stats at start of USB print
+        if (!is_usb_printing) 
+            failstats_reset_print();
 		is_usb_printing = true;
 		usb_printing_counter--;
 		_usb_timer = _millis();
@@ -1862,10 +1869,6 @@ void loop()
 	if (usb_printing_counter == 0)
 	{
 		is_usb_printing = false;
-	}
-    if (isPrintPaused && saved_printing_type == PRINTING_TYPE_USB) //keep believing that usb is being printed. Prevents accessing dangerous menus while pausing.
-	{
-		is_usb_printing = true;
 	}
     
 #ifdef FANCHECK
