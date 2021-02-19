@@ -476,7 +476,7 @@ your extruder heater takes 2 minutes to hit the target on heating.
 #define HOST_KEEPALIVE_INTERVAL 2 // Number of seconds between "busy" messages. Set with M113.
 
 //LCD and SD support
-#define SDSUPPORT // Enable SD Card Support in Hardware Console
+//#define SDSUPPORT // Enable SD Card Support in Hardware Console
 //#define SDSLOW // Use slower SD transfer mode (not normally needed - uncomment if you're getting volume init error)
 #define SD_CHECK_AND_RETRY // Use CRC checks and retries on the SD communication
 #define ENCODER_PULSES_PER_STEP 4 // Increase if you have a high resolution encoder
@@ -485,7 +485,6 @@ your extruder heater takes 2 minutes to hit the target on heating.
 // The RepRapDiscount Smart Controller (white PCB)
 // http://reprap.org/wiki/RepRapDiscount_Smart_Controller
 #define REPRAP_DISCOUNT_SMART_CONTROLLER
-#define SDSUPPORT
 #define LCD_WIDTH 20
 #define LCD_HEIGHT 4
 

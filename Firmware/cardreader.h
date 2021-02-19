@@ -1,8 +1,6 @@
 #ifndef CARDREADER_H
 #define CARDREADER_H
 
-#define SDSUPPORT
-
 #ifdef SDSUPPORT
 
 #define MAX_DIR_DEPTH 6

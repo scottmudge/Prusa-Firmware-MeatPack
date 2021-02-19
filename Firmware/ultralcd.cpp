@@ -56,7 +56,9 @@
 
 
 int scrollstuff = 0;
+#ifdef SDSUPPORT
 char longFilenameOLD[LONG_FILENAME_LENGTH];
+#endif
 int clock_interval = 0;
 
 static void lcd_sd_updir();
@@ -270,17 +272,20 @@ static void lcd_connect_printer();
 //! Beware: has side effects - forces lcd_draw_update to 2, which means clear the display
 void lcd_finishstatus();
 
+#ifdef SDSUPPORT
 static void lcd_sdcard_menu();
+#endif
 static void lcd_sheet_menu();
 
 #ifdef DELTA_CALIBRATION_MENU
 static void lcd_delta_calibrate_menu();
 #endif // DELTA_CALIBRATION_MENU
 
-
+#ifdef SDSUPPORT
 /* Different types of actions that can be used in menu items. */
 static void menu_action_sdfile(const char* filename);
 static void menu_action_sddirectory(const char* filename);
+#endif
 
 #define ENCODER_FEEDRATE_DEADZONE 10
 
@@ -330,7 +335,7 @@ bool bSettings;                                   // flag (i.e. 'fake parameter'
 
 const char STR_SEPARATOR[] PROGMEM = "------------";
 
-
+#ifdef SDSUPPORT
 static void lcd_implementation_drawmenu_sdfile_selected(uint8_t row, const char* filename, char* longFilename)
 {
     char c;
@@ -441,8 +446,6 @@ static void lcd_implementation_drawmenu_sddirectory(uint8_t row, const char* fil
     }
     lcd_space(n);
 }
-
-
 
 #define MENU_ITEM_SDDIR(str_fn, str_fnl) do { if (menu_item_sddir(str_fn, str_fnl)) return; } while (0)
 //#define MENU_ITEM_SDDIR(str, str_fn, str_fnl) MENU_ITEM(sddirectory, str, str_fn, str_fnl)
@@ -569,6 +572,7 @@ static uint8_t menu_item_sdfile(const char*
 	return 0;
 #endif //NEW_SD_MENU
 }
+#endif
 
 // Print temperature (nozzle/bed) (9 chars total)
 void lcdui_print_temp(char type, int val_current, int val_target)
@@ -759,6 +763,8 @@ void lcdui_print_time(void)
 //! @Brief Print status line on status screen
 void lcdui_print_status_line(void)
 {
+
+#ifdef SDSUPPORT
     if (IS_SD_PRINTING) {
         if (strcmp(longFilenameOLD, (card.longFilename[0] ? card.longFilename : card.filename)) != 0) {
             memset(longFilenameOLD, '\0', strlen(longFilenameOLD));
@@ -766,6 +772,7 @@ void lcdui_print_status_line(void)
             scrollstuff = 0;
         }
     }
+#endif
 
     if (heating_status) { // If heating flag, show progress of heating
         heating_status_counter++;
@@ -799,6 +806,7 @@ void lcdui_print_status_line(void)
             break;
         }
     }
+#ifdef SDSUPPORT
     else if ((IS_SD_PRINTING) && (custom_message_type == CustomMsg::Status)) { // If printing from SD, show what we are printing
         if(strlen(longFilenameOLD) > LCD_WIDTH) {
             int inters = 0;
@@ -820,7 +828,9 @@ void lcdui_print_status_line(void)
         } else {
             lcd_printf_P(PSTR("%-20s"), longFilenameOLD);
         }
-    } else { // Otherwise check for other special events
+    }
+#endif
+    else { // Otherwise check for other special events
         switch (custom_message_type) {
         case CustomMsg::MsgUpdate: //Short message even while printing from SD
         case CustomMsg::Status: // Nothing special, print status message normally
@@ -2088,6 +2098,7 @@ static void lcd_preheat_menu()
 //! @endcode
 static void lcd_support_menu()
 {
+#ifdef SDSUPPORT
 	typedef struct
 	{	// 22bytes total
 		int8_t status;                 // 1byte
@@ -2111,6 +2122,7 @@ static void lcd_support_menu()
         // Waiting for the FlashAir card to get an IP address from a router. Force an update.
         _md->status = 0;
     }
+#endif
 
   MENU_BEGIN();
 
@@ -2146,6 +2158,7 @@ static void lcd_support_menu()
   MENU_ITEM_BACK_P(FsensorIRVersionText());
 #endif // IR_SENSOR_ANALOG
 
+#ifndef DISABLE_MMU
 	MENU_ITEM_BACK_P(STR_SEPARATOR);
 	if (mmu_enabled)
 	{
@@ -2162,8 +2175,9 @@ static void lcd_support_menu()
 	}
 	else
 		MENU_ITEM_BACK_P(PSTR("MMU2       N/A"));
+#endif
 
-
+#ifdef SDSUPPORT
   // Show the FlashAir IP address, if the card is available.
   if (_md->is_flash_air) {
       MENU_ITEM_BACK_P(STR_SEPARATOR);
@@ -2188,6 +2202,7 @@ static void lcd_support_menu()
           lcd_printf_P(PSTR("%s"), _md->ip_str);
       }
   }
+#endif
 
   #ifndef MK1BP
   MENU_ITEM_BACK_P(STR_SEPARATOR);
@@ -4348,6 +4363,7 @@ void EEPROM_read(int pos, uint8_t* value, uint8_t size)
   } while (--size);
 }
 
+#ifdef SDSUPPORT
 #ifdef SDCARD_SORT_ALPHA
 static void lcd_sort_type_set() {
 	uint8_t sdSort;
@@ -4361,6 +4377,7 @@ static void lcd_sort_type_set() {
 	card.presort_flag = true;
 }
 #endif //SDCARD_SORT_ALPHA
+#endif
 
 #ifdef TMC2130
 static void lcd_crash_mode_info()
@@ -4705,11 +4722,13 @@ void lcd_extr_cal_reset() {
 
 #endif
 
+#ifdef SDSUPPORT
 void lcd_toshiba_flash_air_compatibility_toggle()
 {
    card.ToshibaFlashAir_enable(! card.ToshibaFlashAir_isEnabled());
    eeprom_update_byte((uint8_t*)EEPROM_TOSHIBA_FLASH_AIR_COMPATIBLITY, card.ToshibaFlashAir_isEnabled());
 }
+#endif
 
 //! @brief Continue first layer calibration with previous value or start from zero?
 //!
@@ -5323,6 +5342,7 @@ while (0)
 #define SETTINGS_MMU_MODE
 #endif //MMU_FORCE_STEALTH_MODE
 
+#ifdef SDSUPPORT
 #ifdef SDCARD_SORT_ALPHA
 #define SETTINGS_SD \
 do\
@@ -5353,6 +5373,7 @@ do\
 }\
 while (0)
 #endif // SDCARD_SORT_ALPHA
+#endif
 
 /*
 #define SETTINGS_MBL_MODE \
@@ -5775,7 +5796,10 @@ static void lcd_settings_menu()
 	MENU_ITEM_SUBMENU_P(_i("Select language"), lcd_language_menu);////MSG_LANGUAGE_SELECT
 #endif //(LANG_MODE != 0)
 
+#ifdef SDSUPPORT
 	SETTINGS_SD;
+#endif
+
 	SETTINGS_SOUND;
 
 #ifdef LCD_BL_PIN
@@ -7125,6 +7149,7 @@ static void lcd_control_temperature_menu()
 }
 
 
+#ifdef SDSUPPORT
 #if SDCARDDETECT == -1
 static void lcd_sd_refresh()
 {
@@ -7137,12 +7162,15 @@ static void lcd_sd_updir()
   card.updir();
   menu_top = 0;
 }
+#endif
 
 void lcd_print_stop()
 {
+#ifdef SDSUPPORT
     if (!card.sdprinting) {
         SERIAL_ECHOLNRPGM(MSG_OCTOPRINT_CANCEL);   // for Octoprint
     }
+#endif
     cmdqueue_serial_disabled = false; //for when canceling a print with a fancheck
 
     CRITICAL_SECTION_START;
@@ -7153,8 +7181,10 @@ void lcd_print_stop()
     // Abort the planner/queue/sd
     planner_abort_hard();
 	cmdqueue_reset();
+#ifdef SDSUPPORT
 	card.sdprinting = false;
 	card.closefile();
+#endif
     st_reset_timer();
 
     CRITICAL_SECTION_END;
@@ -7186,7 +7216,9 @@ void lcd_print_stop()
     }
     st_synchronize();
 
+#ifndef DISABLE_MMU
     if (mmu_enabled) extr_unload(); //M702 C
+#endif
 
     finishAndDisableSteppers(); //M84
 
@@ -7200,6 +7232,7 @@ void lcd_print_stop()
     isPrintPaused = false; //clear isPrintPaused flag to allow starting next print after pause->stop scenario.
 }
 
+#ifdef SDSUPPORT
 void lcd_sdcard_stop()
 {
 
@@ -7283,6 +7316,8 @@ void lcd_sdcard_menu()
   }
   MENU_END();
 }
+#endif
+
 #ifdef TMC2130
 static void lcd_belttest_v()
 {
@@ -8532,7 +8567,7 @@ static void lcd_selftest_screen_step(int _row, int _col, int _state, const char 
 /** End of menus **/
 
 /** Menu action functions **/
-
+#ifdef SDSUPPORT
 static bool check_file(const char* filename) {
 	if (farm_mode) return true;
 	card.openFileReadFilteredGcode(filename, true);
@@ -8618,11 +8653,13 @@ static void menu_action_sdfile(const char* filename)
   lcd_return_to_status();
 }
 
+
 void menu_action_sddirectory(const char* filename)
 {
 	card.chdir(filename, true);
 	lcd_encoder = 0;
 }
+#endif
 
 /** LCD API **/
 
@@ -8838,7 +8875,9 @@ void menu_lcd_longpress_func(void)
         if(menu_menu == lcd_status_screen
         || menu_menu == lcd_main_menu
         || menu_menu == lcd_preheat_menu
+#ifdef SDSUPPORT
         || menu_menu == lcd_sdcard_menu
+#endif
         || menu_menu == lcd_settings_menu
         || menu_menu == lcd_control_temperature_menu
 #if (LANG_MODE != 0)
@@ -8885,6 +8924,7 @@ static inline bool forced_menu_expire()
 
 void menu_lcd_lcdupdate_func(void)
 {
+#ifdef SDSUPPORT
 #if (SDCARDDETECT > 0)
 	if ((IS_SD_INSERTED != lcd_oldcardstatus))
 	{
@@ -8909,6 +8949,7 @@ void menu_lcd_lcdupdate_func(void)
 		}
 	}
 #endif//CARDINSERTED
+#endif
     backlight_update();
 	if (lcd_next_update_millis < _millis())
 	{
