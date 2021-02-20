@@ -1,7 +1,7 @@
 //rbuf.c
 #include "rbuf.h"
 //#include <avr/interrupt.h>
-
+#ifndef DISABLE_MMU
 
 void rbuf_ini(uint8_t* ptr, uint8_t l)
 {
@@ -63,3 +63,5 @@ int rbuf_get(uint8_t* ptr)
 // TODO - optimized assembler version
 //#endif //_NO_ASM
 }
+
+#endif

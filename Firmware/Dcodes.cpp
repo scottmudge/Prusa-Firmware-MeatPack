@@ -1,6 +1,7 @@
 #include "Dcodes.h"
 #include "Marlin.h"
 #include "Configuration.h"
+#ifndef DISABLE_DEBUG
 #include "language.h"
 #include "cmdqueue.h"
 #include <stdio.h>
@@ -942,3 +943,5 @@ void dcode_9125()
 
 
 #endif //DEBUG_DCODES
+
+#endif

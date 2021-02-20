@@ -1,6 +1,7 @@
 #ifndef DCODES_H
 #define DCODES_H
 
+#ifndef DISABLE_DEBUG
 extern void dcode__1(); //D-1 - Endless loop (to simulate deadlock)
 extern void dcode_0(); //D0 - Reset
 extern void dcode_1(); //D1 - Clear EEPROM
@@ -37,6 +38,6 @@ extern void dcode_81(); //D81 - Bed analysis. This command will log data to SD c
 #ifdef PAT9125
 	extern void dcode_9125(); //D9125 - PAT9125
 #endif //PAT9125
-
+#endif
 
 #endif //DCODES_H

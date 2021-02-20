@@ -103,6 +103,7 @@ static const auto FDEBUG_PRINTF_P = printf_P;
 #define FDEBUG_PRINTF_P( __fmt, ... )
 #endif //defined(MMU_FINDA_DEBUG) && defined(MMU_DEBUG)
 
+#ifndef DISABLE_MMU
 
 //clear rx buffer
 void mmu_clr_rx_buf(void)
@@ -146,6 +147,8 @@ int8_t mmu_rx_start(void)
 	if (res == 1) mmu_last_response = _millis();
 	return res;
 }
+#endif
+
 
 //initialize mmu2 unit - first part - should be done at begining of startup process
 void mmu_init(void)
@@ -997,6 +1000,7 @@ int get_ext_nr()
 
 void display_loading()
 {
+#ifdef SNMM
 	switch (mmu_extruder) 
 	{
 	case 1: lcd_display_message_fullscreen_P(_T(MSG_FILAMENT_LOADING_T1)); break;
@@ -1004,6 +1008,7 @@ void display_loading()
 	case 3: lcd_display_message_fullscreen_P(_T(MSG_FILAMENT_LOADING_T3)); break;
 	default: lcd_display_message_fullscreen_P(_T(MSG_FILAMENT_LOADING_T0)); break;
 	}
+#endif
 }
 
 void extr_adj(uint8_t extruder) //loading filament for SNMM

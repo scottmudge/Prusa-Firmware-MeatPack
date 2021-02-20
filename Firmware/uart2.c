@@ -1,5 +1,7 @@
 //uart2.c
 #include "uart2.h"
+
+#ifndef DISABLE_MMU
 #include <avr/io.h>
 #include <avr/interrupt.h>
 #include <avr/pgmspace.h>
@@ -83,3 +85,4 @@ ISR(USART2_RX_vect)
 	}
 }
 
+#endif

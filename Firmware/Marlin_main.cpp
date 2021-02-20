@@ -9021,6 +9021,7 @@ Sigma_Exit:
   *---------------------------------------------------------------------------------
   *# D codes
   */
+#ifndef DISABLE_DEBUG
   else if (code_seen('D')) // D codes (debug)
   {
     switch((int)code_value())
@@ -9335,6 +9336,7 @@ Sigma_Exit:
 #endif //DEBUG_DCODES
 	}
   }
+#endif
 
   else
   {

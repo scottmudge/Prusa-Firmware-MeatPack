@@ -15,10 +15,12 @@
 extern "C" {
 #endif //defined(__cplusplus)
 
+#ifndef DISABLE_MMU
 
 extern void rbuf_ini(uint8_t* ptr, uint8_t len);
 extern int rbuf_put(uint8_t* ptr, uint8_t val);
 extern int rbuf_get(uint8_t* ptr);
+#endif
 
 
 #if defined(__cplusplus)

@@ -20,8 +20,8 @@ extern PGM_P sPrinterName;
 #define FW_COMMIT_NR 3556
 // FW_VERSION_UNKNOWN means this is an unofficial build.
 // The firmware should only be checked into github with this symbol.
-#define FW_DEV_VERSION FW_VERSION_UNKNOWN
-#define FW_REPOSITORY "Unknown"
+#define FW_DEV_VERSION FW_VERSION_GOLD
+#define FW_REPOSITORY "ScottMudge"
 #define FW_VERSION_FULL FW_VERSION "-" STR(FW_COMMIT_NR)
 
 // G-code language level
@@ -85,6 +85,12 @@ extern PGM_P sPrinterName;
 
 // Disable MMU code to save space
 #define DISABLE_MMU
+
+#define DISABLE_DEBUG
+
+#ifdef DISABLE_DEBUG
+#undef DEBUG_BUILD
+#endif
 
 //#define ALTERNATE_SLOWDOWN
 
@@ -501,7 +507,7 @@ your extruder heater takes 2 minutes to hit the target on heating.
 // which is not ass annoying as with the hardware PWM. On the other hand, if this frequency
 // is too low, you should also increment SOFT_PWM_SCALE.
 #define FAN_SOFT_PWM
-#define FAN_SOFT_PWM_BITS 5 //PWM bit resolution = 4bits, freq = 62.5Hz
+#define FAN_SOFT_PWM_BITS 4 //PWM bit resolution = 4bits, freq = 62.5Hz
 
 // Bed soft pwm
 #define HEATER_BED_SOFT_PWM_BITS 5 //PWM bit resolution = 5bits, freq = 31.25Hz
