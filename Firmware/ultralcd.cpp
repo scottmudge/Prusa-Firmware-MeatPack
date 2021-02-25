@@ -7272,7 +7272,6 @@ void lcd_print_stop()
     isPrintPaused = false; //clear isPrintPaused flag to allow starting next print after pause->stop scenario.
 }
 
-#ifdef SDSUPPORT
 void lcd_sdcard_stop()
 {
 
@@ -7301,6 +7300,7 @@ void lcd_sdcard_stop()
 	}
 
 }
+#ifdef SDSUPPORT
 
 void lcd_sdcard_menu()
 {
