@@ -11672,6 +11672,19 @@ void print_mesh_bed_leveling_table()
   SERIAL_ECHOLN();
 }
 
+uint16_t print_time_remaining() {
+    uint16_t print_t = PRINT_TIME_REMAINING_INIT;
+#ifdef TMC2130 
+    if (SilentModeMenu == SILENT_MODE_OFF) print_t = print_time_remaining_normal;
+    else print_t = print_time_remaining_silent;
+#else
+    print_t = print_time_remaining_normal;
+#endif //TMC2130
+    if ((print_t != PRINT_TIME_REMAINING_INIT) && (feedmultiply != 0)) print_t = 100ul * print_t / feedmultiply;
+    return print_t;
+}
+
+
 uint8_t calc_percent_done()
 {
     //in case that we have information from M73 gcode return percentage counted by slicer, else return percentage counted as byte_printed/filesize
