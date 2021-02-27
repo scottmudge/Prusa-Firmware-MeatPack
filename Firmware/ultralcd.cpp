@@ -679,91 +679,64 @@ void lcdui_print_cmd_diag(void)
 // Print time (8 chars total)
 void lcdui_print_time(void)
 {
+    //if remaining print time estimation is available print it else print elapsed time
     int chars = 0;
-    if (is_usb_printing) {
-        // Show USB print, since Print-time-genius does a better job, and the code change
-        // below doesn't work w/ USB printing.
-        chars = lcd_printf_P(_N("USB Prnt"));
-    }
-    else {
-        //if remaining print time estimation is available print it else print elapsed time
-        if ((PRINTER_ACTIVE) && (starttime != 0))
-        {
-            uint16_t print_t = 0;
-            uint16_t print_tr = 0;
-            uint16_t print_tc = 0;
-            char suff = ' ';
-            char suff_doubt = ' ';
+    if (PRINTER_ACTIVE) {
+        uint16_t print_t = 0;
+        uint16_t print_tr = 0;
+        uint16_t print_tc = 0;
+        char suff = ' ';
+        char suff_doubt = ' ';
 
 #ifdef TMC2130
-            if (SilentModeMenu != SILENT_MODE_OFF)
-            {
-                if (print_time_remaining_silent != PRINT_TIME_REMAINING_INIT)
-                {
-                    print_tr = print_time_remaining_silent;
-                }
-                //#ifdef CLOCK_INTERVAL_TIME
-                if (print_time_to_change_silent != PRINT_TIME_REMAINING_INIT)
-                {
-                    print_tc = print_time_to_change_silent;
-                }
-                //#endif //CLOCK_INTERVAL_TIME
-            }
-            else
-            {
+        if (SilentModeMenu != SILENT_MODE_OFF) {
+            if (print_time_remaining_silent != PRINT_TIME_REMAINING_INIT)
+                print_tr = print_time_remaining_silent;
+//#ifdef CLOCK_INTERVAL_TIME
+            if (print_time_to_change_silent != PRINT_TIME_REMAINING_INIT)
+                print_tc = print_time_to_change_silent;
+//#endif //CLOCK_INTERVAL_TIME
+        } else {
 #endif //TMC2130
-                if (print_time_remaining_normal != PRINT_TIME_REMAINING_INIT)
-                {
-                    print_tr = print_time_remaining_normal;
-                }
-                //#ifdef CLOCK_INTERVAL_TIME
-                if (print_time_to_change_normal != PRINT_TIME_REMAINING_INIT)
-                {
-                    print_tc = print_time_to_change_normal;
-                }
-                //#endif //CLOCK_INTERVAL_TIME
+            if (print_time_remaining_normal != PRINT_TIME_REMAINING_INIT)
+                print_tr = print_time_remaining_normal;
+//#ifdef CLOCK_INTERVAL_TIME
+            if (print_time_to_change_normal != PRINT_TIME_REMAINING_INIT)
+                print_tc = print_time_to_change_normal;
+//#endif //CLOCK_INTERVAL_TIME
 #ifdef TMC2130
-            }
-#endif //TMC2130
-
-            //#ifdef CLOCK_INTERVAL_TIME
-            if (clock_interval == CLOCK_INTERVAL_TIME * 2)
-            {
-                clock_interval = 0;
-            }
-            clock_interval++;
-
-            if (print_tc != 0 && clock_interval > CLOCK_INTERVAL_TIME)
-            {
-                print_t = print_tc;
-                suff = 'C';
-            }
-            else
-                //#endif //CLOCK_INTERVAL_TIME 
-                if (print_tr != 0)
-                {
-                    print_t = print_tr;
-                    suff = 'R';
-                }
-                else
-                {
-                    print_t = _millis() / 60000 - starttime / 60000;
-                }
-
-            if (feedmultiply != 100 && (print_t == print_tr || print_t == print_tc))
-            {
-                suff_doubt = '?';
-                print_t = 100ul * print_t / feedmultiply;
-            }
-
-            if (print_t < 6000) //time<100h
-                chars = lcd_printf_P(_N("%c%02u:%02u%c%c"), LCD_STR_CLOCK[0], print_t / 60, print_t % 60, suff, suff_doubt);
-            else //time>=100h
-                chars = lcd_printf_P(_N("%c%3uh %c%c"), LCD_STR_CLOCK[0], print_t / 60, suff, suff_doubt);
         }
-        else
-            chars = lcd_printf_P(_N("%c--:--  "), LCD_STR_CLOCK[0]);
+#endif //TMC2130
+
+//#ifdef CLOCK_INTERVAL_TIME
+        if (clock_interval == CLOCK_INTERVAL_TIME*2)
+            clock_interval = 0;
+
+        clock_interval++;
+
+        if (print_tc != 0 && clock_interval > CLOCK_INTERVAL_TIME) {
+            print_t = print_tc;
+            suff = 'C';
+        } else
+//#endif //CLOCK_INTERVAL_TIME 
+        if (print_tr != 0) {
+            print_t = print_tr;
+            suff = 'R';
+        } else 
+            print_t = _millis() / 60000 - starttime / 60000;
+
+        if (feedmultiply != 100 && (print_t == print_tr || print_t == print_tc)) {
+            suff_doubt = '?';
+            print_t = 100ul * print_t / feedmultiply;
+        }
+
+        if (print_t < 6000) //time<100h
+            chars = lcd_printf_P(_N("%c%02u:%02u%c%c"), LCD_STR_CLOCK[0], print_t / 60, print_t % 60, suff, suff_doubt);
+        else //time>=100h
+            chars = lcd_printf_P(_N("%c%3uh %c%c"), LCD_STR_CLOCK[0], print_t / 60, suff, suff_doubt);
     }
+    else
+        chars = lcd_printf_P(_N("%c--:--  "), LCD_STR_CLOCK[0]);
     lcd_space(8 - chars);
 }
 
@@ -2876,6 +2849,13 @@ void lcd_menu_statistics()
 
 static void _lcd_move(const char *name, int axis, int min, int max)
 {
+    if (homing_flag || mesh_bed_leveling_flag)
+    {
+        // printer entered a new state where axis move is forbidden
+        menu_back();
+        return;
+    }
+
 	typedef struct
 	{	// 2bytes total
 		bool initialized;              // 1byte
@@ -3097,6 +3077,13 @@ static void lcd_move_z() {
  */
 static void lcd_babystep_z()
 {
+    if (homing_flag || mesh_bed_leveling_flag)
+    {
+        // printer changed to a new state where live Z is forbidden
+        menu_back();
+        return;
+    }
+
 	typedef struct
 	{
 		int8_t status;
@@ -3132,19 +3119,13 @@ static void lcd_babystep_z()
 		lcd_timeoutToStatus.start();
 	}
 
-	if (lcd_encoder != 0) 
+	if (lcd_encoder != 0)
 	{
-		if (homing_flag) lcd_encoder = 0;
 		_md->babystepMemZ += (int)lcd_encoder;
 
         if (_md->babystepMemZ < Z_BABYSTEP_MIN) _md->babystepMemZ = Z_BABYSTEP_MIN; //-3999 -> -9.99 mm
         else if (_md->babystepMemZ > Z_BABYSTEP_MAX) _md->babystepMemZ = Z_BABYSTEP_MAX; //0
-        else
-        {
-            CRITICAL_SECTION_START
-            babystepsTodo[Z_AXIS] += (int)lcd_encoder;
-            CRITICAL_SECTION_END
-        }
+        else babystepsTodoZadd(lcd_encoder);
 
 		_md->babystepMemMMZ = _md->babystepMemZ/cs.axis_steps_per_unit[Z_AXIS];
 		_delay(50);
@@ -5790,10 +5771,12 @@ static void lcd_settings_menu()
 	MENU_ITEM_BACK_P(_T(MSG_MAIN));
 
 	MENU_ITEM_SUBMENU_P(_i("Temperature"), lcd_control_temperature_menu);////MSG_TEMPERATURE
-	if (!homing_flag)
+
+	if (!PRINTER_ACTIVE || isPrintPaused)
+    {
 	    MENU_ITEM_SUBMENU_P(_i("Move axis"), lcd_move_menu_1mm);////MSG_MOVE_AXIS
-	if (!isPrintPaused)
 	    MENU_ITEM_GCODE_P(_i("Disable steppers"), PSTR("M84"));////MSG_DISABLE_STEPPERS
+    }
 
 	SETTINGS_FILAMENT_SENSOR;
 
@@ -5827,7 +5810,7 @@ static void lcd_settings_menu()
     MENU_ITEM_TOGGLE_P(_T(MSG_RPI_PORT), (selectedSerialPort == 0) ? _T(MSG_OFF) : _T(MSG_ON), lcd_second_serial_set);
 #endif //HAS_SECOND_SERIAL
 
-	if (!isPrintPaused && !homing_flag)
+	if (!isPrintPaused && !homing_flag && !mesh_bed_leveling_flag)
 		MENU_ITEM_SUBMENU_P(_T(MSG_BABYSTEP_Z), lcd_babystep_z);
 
 #if (LANG_MODE != 0)
