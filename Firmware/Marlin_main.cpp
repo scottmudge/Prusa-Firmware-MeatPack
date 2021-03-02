@@ -3341,9 +3341,8 @@ static void gcode_M600(bool automatic, float x_position, float y_position, float
     //Not let's go back to print
     fanSpeed = fanSpeedBckp;
 
-    //Feed a little of filament to stabilize pressure
-    if (!automatic)
-    {
+    //Feed a little of filament to stabilize pressure, only if changing during printing
+    if (!automatic && (is_usb_printing || IS_SD_PRINTING)) {
         current_position[E_AXIS] += FILAMENTCHANGE_RECFEED;
         plan_buffer_line_curposXYZE(FILAMENTCHANGE_EXFEED);
 
