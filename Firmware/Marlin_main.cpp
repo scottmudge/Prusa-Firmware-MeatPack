@@ -2986,14 +2986,25 @@ void adjust_bed_reset()
 //! @param verbosity_level
 //! @retval true Succeeded
 //! @retval false Failed
+#ifndef DISABLE_CALIBRATION
 bool gcode_M45(bool onlyZ, int8_t verbosity_level)
+#else
+bool gcode_M45()
+#endif
 {
+
+#ifdef DISABLE_CALIBRATION
+    constexpr bool onlyZ = true;
+    constexpr int8_t verbosity_level = 0;
+#endif
+
 	bool final_result = false;
 	#ifdef TMC2130
 	FORCE_HIGH_POWER_START;
 	#endif // TMC2130
     
     FORCE_BL_ON_START;
+
 	
     // Only Z calibration?
 	if (!onlyZ)
@@ -6049,6 +6060,7 @@ if(eSoundMode!=e_SOUND_MODE_SILENT)
     case 45: // M45: Prusa3D: bed skew and offset with manual Z up
     {
 		int8_t verbosity_level = 0;
+#ifndef DISABLE_CALIBRATION
 		bool only_Z = code_seen('Z');
 		#ifdef SUPPORT_VERBOSITY
 		if (code_seen('V'))
@@ -6059,6 +6071,9 @@ if(eSoundMode!=e_SOUND_MODE_SILENT)
 		}
 		#endif //SUPPORT_VERBOSITY
 		gcode_M45(only_Z, verbosity_level);
+#else
+        gcode_M45();
+#endif
     }
 	break;
 #ifdef SDSUPPORT

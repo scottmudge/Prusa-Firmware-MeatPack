@@ -5041,10 +5041,16 @@ void lcd_wizard(WizState state)
 			else end = true;
 			break;
 		case S::Xyz:
+#ifndef DISABLE_CALIBRATION
 			lcd_show_fullscreen_message_and_wait_P(_i("I will run xyz calibration now. It will take approx. 12 mins."));////MSG_WIZARD_XYZ_CAL c=20 r=8
 			wizard_event = gcode_M45(false, 0);
+#else
+            lcd_show_fullscreen_message_and_wait_P(_i("XYZ calib disabled on this build. Please use diff firmware."));////MSG_WIZARD_XYZ_CAL c=20 r=8
+            wizard_event = 1;
+#endif
 			if (wizard_event) state = S::IsFil;
 			else end = true;
+
 			break;
 		case S::Z:
 			lcd_show_fullscreen_message_and_wait_P(_i("Please remove shipping helpers first."));
@@ -5052,7 +5058,11 @@ void lcd_wizard(WizState state)
 			lcd_show_fullscreen_message_and_wait_P(_i("I will run z calibration now."));////MSG_WIZARD_Z_CAL c=20 r=8
 			wizard_event = lcd_show_fullscreen_message_yes_no_and_wait_P(_T(MSG_STEEL_SHEET_CHECK), false, false);
 			if (!wizard_event) lcd_show_fullscreen_message_and_wait_P(_T(MSG_PLACE_STEEL_SHEET));
+#ifndef DISABLE_CALIBRATION
 			wizard_event = gcode_M45(true, 0);
+#else
+            wizard_event = gcode_M45();
+#endif
 			if (wizard_event) {
 				//current filament needs to be unloaded and then new filament should be loaded
 				//start to preheat nozzle for unloading remaining PLA filament
@@ -5881,8 +5891,10 @@ static void lcd_calibration_menu()
     // "Calibrate Z"
     MENU_ITEM_GCODE_P(_T(MSG_HOMEYZ), PSTR("G28 Z"));
 #else //MK1BP
+#ifndef DISABLE_CALIBRATION
     // MK2
     MENU_ITEM_FUNCTION_P(_i("Calibrate XYZ"), lcd_mesh_calibration);////MSG_CALIBRATE_BED
+#endif
     // "Calibrate Z" with storing the reference values to EEPROM.
     MENU_ITEM_SUBMENU_P(_T(MSG_HOMEYZ), lcd_mesh_calibration_z);
 #ifndef SNMM
