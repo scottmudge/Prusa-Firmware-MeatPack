@@ -264,6 +264,7 @@ enum class WizState : uint8_t
     Finish,         //!< Deactivate wizard
 };
 
+
 void lcd_wizard(WizState state);
 
 extern void lcd_experimental_toggle();

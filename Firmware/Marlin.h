@@ -479,8 +479,11 @@ void force_high_power_mode(bool start_high_power_section);
 #endif //TMC2130
 
 // G-codes
-
+#ifndef DISABLE_CALIBRATION
 bool gcode_M45(bool onlyZ, int8_t verbosity_level);
+#else
+bool gcode_M45();
+#endif
 void gcode_M114();
 #if (defined(FANCHECK) && (((defined(TACH_0) && (TACH_0 >-1)) || (defined(TACH_1) && (TACH_1 > -1)))))
 void gcode_M123();
