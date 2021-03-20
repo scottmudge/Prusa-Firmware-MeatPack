@@ -109,7 +109,7 @@ uint8_t optiboot_w25x20cl_enter()
     }
     selectedSerialPort = 0; //switch to Serial0
     MYSERIAL.flush(); //clear RX buffer
-    int SerialHead = rx_buffer.head;
+    uint8_t SerialHead = rx_buffer.head;
     // Send the initial magic string.
     while (ptr != end)
       putch(pgm_read_byte(ptr ++));
@@ -126,7 +126,7 @@ uint8_t optiboot_w25x20cl_enter()
       // i.e. rx_buffer.head == SerialHead would not be checked at all!
       // With the volatile keyword the compiler generates exactly the same code as without it with only one difference:
       // the last brne instruction jumps onto the (*rx_head == SerialHead) check and NOT onto the wdr instruction bypassing the check.
-      volatile int *rx_head = &rx_buffer.head;
+      volatile uint8_t *rx_head = &rx_buffer.head;
       while (*rx_head == SerialHead) {
         wdt_reset();
         if ( --boot_timer == 0) {
@@ -136,7 +136,7 @@ uint8_t optiboot_w25x20cl_enter()
         }
       }
       ch = rx_buffer.buffer[SerialHead];
-      SerialHead = (unsigned int)(SerialHead + 1) % RX_BUFFER_SIZE;
+      SerialHead = (uint8_t)(SerialHead + 1) % RX_BUFFER_SIZE;
       if (pgm_read_byte(ptr ++) != ch)
       {
           // Magic was not received correctly, continue with the application

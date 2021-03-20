@@ -84,7 +84,7 @@ extern PGM_P sPrinterName;
 #define ENABLE_MEATPACK
 
 // Disable MMU code to save space
-#define DISABLE_MMU
+//#define DISABLE_MMU
 
 #define DISABLE_DEBUG
 
