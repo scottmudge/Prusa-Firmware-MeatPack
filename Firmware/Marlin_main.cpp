@@ -319,8 +319,8 @@ bool mmu_print_saved = false;
 
 // storing estimated time to end of print counted by slicer
 uint8_t print_percent_done_normal = PRINT_PERCENT_DONE_INIT;
-uint16_t print_time_remaining_normal = PRINT_TIME_REMAINING_INIT; //estimated remaining print time in minutes
 uint8_t print_percent_done_silent = PRINT_PERCENT_DONE_INIT;
+uint16_t print_time_remaining_normal = PRINT_TIME_REMAINING_INIT; //estimated remaining print time in minutes
 uint16_t print_time_remaining_silent = PRINT_TIME_REMAINING_INIT; //estimated remaining print time in minutes
 uint16_t print_time_to_change_normal = PRINT_TIME_REMAINING_INIT; //estimated remaining time to next change in minutes
 uint16_t print_time_to_change_silent = PRINT_TIME_REMAINING_INIT; //estimated remaining time to next change in minutes
@@ -761,31 +761,16 @@ static void factory_reset(char level)
 #endif //FILAMENT_SENSOR
 		break;
 
-	case 3:{ // Level 3: erase everything, whole EEPROM will be set to 0xFF
-		lcd_puts_P(PSTR("Factory RESET"));
-		lcd_puts_at_P(1, 2, PSTR("ERASING all data"));
-		uint16_t er_progress = 0;
-		lcd_set_cursor(3, 3);
-		lcd_space(6);
-		lcd_set_cursor(3, 3);
-		lcd_print(er_progress);
-
+	case 3:
+		menu_progressbar_init(EEPROM_TOP, PSTR("ERASING all data"));
 		// Erase EEPROM
-		for (uint16_t i = 0; i < 4096; i++) {
+		for (uint16_t i = 0; i < EEPROM_TOP; i++) {
 			eeprom_update_byte((uint8_t*)i, 0xFF);
-
-			if (i % 41 == 0) {
-				er_progress++;
-				lcd_set_cursor(3, 3);
-				lcd_space(6);
-				lcd_set_cursor(3, 3);
-				lcd_print(er_progress);
-				lcd_puts_P(PSTR("%"));
-			}
-
+			menu_progressbar_update(i);
 		}
+		menu_progressbar_finish();
 		softReset();
-		}break;
+		break;
 
 
 #ifdef SNMM
@@ -6432,14 +6417,19 @@ Sigma_Exit:
         if(code_seen('R')) print_time_remaining_normal = code_value();
         if(code_seen('Q')) print_percent_done_silent = code_value();
         if(code_seen('S')) print_time_remaining_silent = code_value();
-        if(code_seen('C')) print_time_to_change_normal = code_value();
-        if(code_seen('D')) print_time_to_change_silent = code_value();
-
-    {
-        const char* _msg_mode_done_remain = _N("%S MODE: Percent done: %d; print time remaining in mins: %d; Change in mins: %d\n");
-        printf_P(_msg_mode_done_remain, _N("NORMAL"), int(print_percent_done_normal), print_time_remaining_normal, print_time_to_change_normal);
-        printf_P(_msg_mode_done_remain, _N("SILENT"), int(print_percent_done_silent), print_time_remaining_silent, print_time_to_change_silent);
-    }
+        if(code_seen('C')){
+            float print_time_to_change_normal_f = code_value_float();
+            print_time_to_change_normal = ( print_time_to_change_normal_f <= 0 ) ? PRINT_TIME_REMAINING_INIT : print_time_to_change_normal_f;
+        }
+        if(code_seen('D')){
+            float print_time_to_change_silent_f = code_value_float();
+            print_time_to_change_silent = ( print_time_to_change_silent_f <= 0 ) ? PRINT_TIME_REMAINING_INIT : print_time_to_change_silent_f;
+        }
+        {
+            const char* _msg_mode_done_remain = _N("%S MODE: Percent done: %hhd; print time remaining in mins: %d; Change in mins: %d\n");
+            printf_P(_msg_mode_done_remain, _N("NORMAL"), int8_t(print_percent_done_normal), print_time_remaining_normal, print_time_to_change_normal);
+            printf_P(_msg_mode_done_remain, _N("SILENT"), int8_t(print_percent_done_silent), print_time_remaining_silent, print_time_to_change_silent);
+        }
         break;
     }
     /*!
@@ -11309,7 +11299,7 @@ void restore_print_from_eeprom(bool mbl_was_active) {
 		}
 		dir_name[8] = '\0';
 		MYSERIAL.println(dir_name);
-		// strcpy(dir_names[i], dir_name);
+		// strcpy(card.dir_names[i], dir_name);
 		card.chdir(dir_name, false);
 	}
 
