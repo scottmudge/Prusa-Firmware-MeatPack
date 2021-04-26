@@ -103,7 +103,7 @@
 #MSG_BED
 "Bed"
 
-#MSG_MENU_BELT_STATUS c=18
+#MSG_BELT_STATUS c=18
 "Belt status"
 
 #MSG_RECOVER_PRINT c=20 r=2
@@ -142,6 +142,9 @@
 #MSG_SD_REMOVED
 "Card removed"
 
+#
+"Checking file"
+
 #MSG_NOT_COLOR
 "Color not correct"
 
@@ -163,7 +166,7 @@
 #
 "Crash detected. Resume print?"
 
-#
+#MSG_CRASH c=7
 "Crash"
 
 #MSG_CURRENT c=19 r=1
@@ -171,6 +174,9 @@
 
 #MSG_DATE c=17 r=1
 "Date:"
+
+#MSG_COMMUNITY_MADE c=18
+"Community made"
 
 #MSG_DISABLE_STEPPERS
 "Disable steppers"
@@ -187,7 +193,7 @@
 #MSG_EXTRUDER_CORRECTION c=13
 "E-correct:"
 
-#MSG_EJECT_FILAMENT c=17 r=1
+#MSG_EJECT_FILAMENT c=16
 "Eject filament"
 
 #MSG_EJECTING_FILAMENT c=20 r=1
@@ -229,7 +235,7 @@
 #MSG_INFO_EXTRUDER c=18
 "Extruder info"
 
-#MSG_MOVE_E
+#MSG_EXTRUDER c=17
 "Extruder"
 
 #
@@ -247,14 +253,14 @@
 #MSG_SELFTEST_FAN c=20
 "Fan test"
 
-#MSG_FANS_CHECK
+#MSG_FANS_CHECK c=13
 "Fans check"
 
 #MSG_FSENSOR
 "Fil. sensor"
 
-# c=14
-"Filam. runouts"
+#MSG_FIL_RUNOUTS c=15
+"Fil. runouts"
 
 #MSG_FILAMENT_CLEAN c=20 r=2
 "Filament extruding & with correct color?"
@@ -343,14 +349,14 @@
 #MSG_SELFTEST_CHECK_FSENSOR c=20
 "Checking sensors "
 
-#MSG_SELFTEST_CHECK_X c=20
-"Checking X axis  "
+#MSG_CHECKING_X c=20
+"Checking X axis"
 
-#MSG_SELFTEST_CHECK_Y c=20
-"Checking Y axis  "
+#MSG_CHECKING_Y c=20
+"Checking Y axis"
 
 #MSG_SELFTEST_CHECK_Z c=20
-"Checking Z axis  "
+"Checking Z axis"
 
 #MSG_CHOOSE_EXTRUDER c=20 r=1
 "Choose extruder:"
@@ -373,19 +379,22 @@
 #MSG_INSERT_FILAMENT c=20
 "Insert filament"
 
-#MSG_WIZARD_FILAMENT_LOADED c=20 r=2
+#MSG_FILAMENT_LOADED c=20 r=2
 "Is filament loaded?"
 
 #MSG_STEEL_SHEET_CHECK c=20 r=2
 "Is steel sheet on heatbed?"
 
-#
+#MSG_LAST_PRINT_FAILURES c=20
 "Last print failures"
+
+#MSG_WIZARD_WELCOME_SHIPPING c=20 r=16
+"Hi, I am your Original Prusa i3 printer. I will guide you through a short setup process, in which the Z-axis will be calibrated. Then, you will be ready to print."
 
 #
 "If you have additional steel sheets, calibrate their presets in Settings - HW Setup - Steel sheets."
 
-#
+#MSG_LAST_PRINT c=18
 "Last print"
 
 #MSG_SELFTEST_EXTRUDER_FAN c=20
@@ -436,7 +445,7 @@
 #MSG_MEASURE_BED_REFERENCE_HEIGHT_LINE1 c=60
 "Measuring reference height of calibration point"
 
-#MSG_MESH_BED_LEVELING
+#MSG_MESH_BED_LEVELING c=18
 "Mesh Bed Leveling"
 
 #MSG_MMU_OK_RESUMING_POSITION c=20 r=4
@@ -448,13 +457,13 @@
 #
 "Measured skew"
 
-#
+#MSG_MMU_FAILS c=15
 "MMU fails"
 
 #
 "MMU load failed     "
 
-#
+#MSG_MMU_LOAD_FAILS c=15
 "MMU load fails"
 
 #MSG_MMU_OK_RESUMING c=20 r=4
@@ -544,7 +553,7 @@
 #
 "Nozzle FAN"
 
-#MSG_PAUSE_PRINT
+#MSG_PAUSE_PRINT c=18
 "Pause print"
 
 #MSG_PID_RUNNING c=20 r=1
@@ -620,12 +629,12 @@
 "Please upgrade."
 
 #MSG_PRESS_TO_PREHEAT c=20 r=4
-"Press knob to preheat nozzle and continue."
+"Press the knob to preheat nozzle and continue."
 
 #MSG_FS_PAUSE c=5
 "Pause"
 
-#
+#MSG_POWER_FAILURES c=15
 "Power failures"
 
 #MSG_PRINT_ABORTED c=20
@@ -643,7 +652,7 @@
 #MSG_CARD_MENU
 "Print from SD"
 
-#
+# c=20
 "Press the knob"
 
 #MSG_PRINT_PAUSED c=20 r=1
@@ -691,10 +700,10 @@
 #MSG_CALIBRATE_BED_RESET
 "Reset XYZ calibr."
 
-#MSG_BED_CORRECTION_RESET
+#MSG_RESET c=14
 "Reset"
 
-#MSG_RESUME_PRINT
+#MSG_RESUME_PRINT c=18
 "Resume print"
 
 #MSG_RESUMING_PRINT c=20
@@ -871,13 +880,13 @@
 #
 "Unload"
 
-#
+#MSG_TOTAL_FAILURES c=20
 "Total failures"
 
-#
+# c=20
 "to load filament"
 
-#
+# c=20
 "to unload filament"
 
 #MSG_UNLOAD_FILAMENT c=17
@@ -886,7 +895,7 @@
 #MSG_UNLOADING_FILAMENT c=20 r=1
 "Unloading filament"
 
-#
+#MSG_TOTAL c=6
 "Total"
 
 #MSG_USED c=19 r=1
@@ -1012,7 +1021,7 @@
 #MSG_WARN
 "Warn"
 
-#
+#MSG_HW_SETUP c=18
 "HW Setup"
 
 #
@@ -1023,9 +1032,6 @@
 
 #MSG_MESH
 "Mesh"
-
-#
-"Mesh bed leveling"
 
 #
 "MK3S firmware detected on MK3 printer"
@@ -1048,10 +1054,10 @@
 #
 "G-code sliced for a different level. Please re-slice the model again. Print cancelled."
 
-#
+#MSG_GCODE_DIFF_PRINTER_CONTINUE c=20 r=5
 "G-code sliced for a different printer type. Continue?"
 
-#
+#MSG_GCODE_DIFF_PRINTER_CANCELLED c=20 r=7
 "G-code sliced for a different printer type. Please re-slice the model again. Print cancelled."
 
 #
@@ -1093,7 +1099,7 @@
 #MSG_SOUND_BLIND
 "Assist"
 
-# c=18
+#MSG_STEEL_SHEET c=18
 "Steel sheets"
 
 #MSG_Z_CORRECTION c=13
