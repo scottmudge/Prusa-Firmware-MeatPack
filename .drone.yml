@@ -6,7 +6,7 @@ workspace:
 
 steps:
   - name: tests
-    image: vertigo235/fw-build
+    image: vertigo235/fw-build:1.3
     commands:
       - bash -x test.sh
     when:
@@ -16,7 +16,7 @@ steps:
         - pull_request
   
   - name: build-a-bear
-    image: vertigo235/fw-build
+    image: vertigo235/fw-build:1.3
     environment:
       BUILD_TYPE: GOLD
     commands:
@@ -28,9 +28,9 @@ steps:
       - sed 's/#define CUSTOM_MENDEL_NAME "Prusa i3 MK3S"/#define CUSTOM_MENDEL_NAME "Prusa i3 MK3S BEAR"/' Firmware/variants/1_75mm_MK3S-EINSy10a-E3Dv6full.h > Firmware/variants/Bear_Cal_FW_MK3S-EINSy10a.h
       - sed 's/#define CUSTOM_MENDEL_NAME "Prusa i3 MK2.5"/#define CUSTOM_MENDEL_NAME "Prusa i3 MK2.5S BEAR"/' Firmware/variants/1_75mm_MK25S-RAMBo10a-E3Dv6full.h > Firmware/variants/Bear_Cal_FW_MK25S-RAMBo10a.h
       - sed 's/#define CUSTOM_MENDEL_NAME "Prusa i3 MK2.5"/#define CUSTOM_MENDEL_NAME "Prusa i3 MK2.5S BEAR"/' Firmware/variants/1_75mm_MK25S-RAMBo13a-E3Dv6full.h > Firmware/variants/Bear_Cal_FW_MK25S-RAMBo13a.h
-      - bash -x PF-build.sh Bear_Cal_FW_MK3S-EINSy10a.h ALL $BUILD_TYPE
-      - bash -x PF-build.sh Bear_Cal_FW_MK25S-RAMBo10a.h ALL $BUILD_TYPE
-      - bash -x PF-build.sh Bear_Cal_FW_MK25S-RAMBo13a.h ALL $BUILD_TYPE
+      - bash -x PF-build.sh -v Bear_Cal_FW_MK3S-EINSy10a.h -l ALL -d $BUILD_TYPE
+      - bash -x PF-build.sh -v Bear_Cal_FW_MK25S-RAMBo10a.h -l ALL -d $BUILD_TYPE
+      - bash -x PF-build.sh -v Bear_Cal_FW_MK25S-RAMBo13a.h -l ALL -d $BUILD_TYPE
     when:
       event:
        - push
@@ -38,7 +38,7 @@ steps:
        - pull_request
   
   - name: prepare-hex
-    image: vertigo235/fw-build
+    image: vertigo235/fw-build:1.3
     commands:
       - cd $DRONE_WORKSPACE
       - mkdir out
@@ -61,7 +61,7 @@ steps:
       - build-a-bear
 
   - name: transfersh
-    image: vertigo235/fw-build:1
+    image: vertigo235/fw-build:1.3
     failure: ignore
     commands:
       - cd $DRONE_WORKSPACE/fileshare
@@ -76,7 +76,7 @@ steps:
       - prepare-hex
 
   - name: fileio
-    image: vertigo235/fw-build:1
+    image: vertigo235/fw-build:1.3
     failure: ignore
     commands:
       - cd $DRONE_WORKSPACE/fileshare
