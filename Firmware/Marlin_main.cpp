@@ -50,6 +50,10 @@
 
 #include "macros.h"
 
+#ifdef __INTELLISENSE__
+#include "variants/1_75mm_MK3S-EINSy10a-E3Dv6full.h"
+#endif
+
 #ifdef ENABLE_AUTO_BED_LEVELING
 #include "vector_3.h"
   #ifdef AUTO_BED_LEVELING_GRID
@@ -3775,12 +3779,12 @@ void gcode_M701()
 
 		lcd_setstatuspgm(_T(MSG_LOADING_FILAMENT));
 		current_position[E_AXIS] += 40;
-		plan_buffer_line_curposXYZE(400 / 60); //fast sequence
+		plan_buffer_line_curposXYZE(250 / 60); //fast sequence
 		st_synchronize();
 
         raise_z_above(MIN_Z_FOR_LOAD, false);
 		current_position[E_AXIS] += 30;
-		plan_buffer_line_curposXYZE(400 / 60); //fast sequence
+		plan_buffer_line_curposXYZE(250 / 35); //fast sequence
 		
 		load_filament_final_feed(); //slow sequence
 		st_synchronize();
@@ -8061,58 +8065,61 @@ Sigma_Exit:
 		bool automatic = false;
 		
         //Retract extruder
-        if(code_seen('E'))
-        {
-          e_shift_init = code_value();
-        }
-        else
-        {
+//         if(code_seen('E'))
+//         {
+//           e_shift_init = code_value();
+//         }
+//         else
+//         {
           #ifdef FILAMENTCHANGE_FIRSTRETRACT
             e_shift_init = FILAMENTCHANGE_FIRSTRETRACT ;
           #endif
-        }
+    //    }
 
 		//currently don't work as we are using the same unload sequence as in M702, needs re-work 
-		if (code_seen('L'))
-		{
-			e_shift_late = code_value();
-		}
-		else
-		{
+// 		if (code_seen('L'))
+// 		{
+// 			e_shift_late = code_value();
+// 		}
+// 		else
+// 		{
 		  #ifdef FILAMENTCHANGE_FINALRETRACT
 			e_shift_late = FILAMENTCHANGE_FINALRETRACT;
 		  #endif	
-		}
+//		}
 
         //Lift Z
-        if(code_seen('Z'))
-        {
-          z_shift = code_value();
-        }
-        else
-        {
+//         if(code_seen('Z'))
+//         {
+//           z_shift = code_value();
+//         }
+//         else
+//         {
 			z_shift = gcode_M600_filament_change_z_shift<uint8_t>();
-        }
+ //       }
 		//Move XY to side
-        if(code_seen('X'))
-        {
-          x_position = code_value();
-        }
-        else
-        {
+//         if(code_seen('X'))
+//         {
+//           x_position = code_value();
+//         }
+//         else
+//         {
+        // Only move while priting, otherwise leave it alone.
+        if (is_usb_printing || IS_SD_PRINTING) {
           #ifdef FILAMENTCHANGE_XPOS
 			x_position = FILAMENTCHANGE_XPOS;
           #endif
-        }
-        if(code_seen('Y'))
-        {
-          y_position = code_value();
-        }
-        else
-        {
+ //       }
+//         if(code_seen('Y'))
+//         {
+//           y_position = code_value();
+//         }
+//         else
+//         {
           #ifdef FILAMENTCHANGE_YPOS
             y_position = FILAMENTCHANGE_YPOS ;
           #endif
+//        }
         }
 
 		if (mmu_enabled && code_seen_P(PSTR("AUTO")))
