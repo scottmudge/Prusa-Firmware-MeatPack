@@ -12,14 +12,12 @@
 #define TMC2130_GCONF_SGSENS 0x00003180 // spreadCycle with stallguard (stall activates DIAG0 and DIAG1 [pushpull])
 #define TMC2130_GCONF_SILENT 0x00000004 // stealthChop
 #define TMC2130_ERROR_CNT_THR 64U
+#define TMC2130_ERROR_CNT_LENIENT_DEC 24U
+#define TMC2130_ERROR_CNT_LENIENT_THR (TMC2130_ERROR_CNT_LENIENT_DEC * 6U)
 
 // Test mask for axis-error lenience
 static constexpr uint8_t ErrorLenienceMask =
 (LENIENT_X_ERROR == 0 ? 0x0 : X_AXIS_MASK) | (LENIENT_Y_ERROR == 0 ? 0x0 : Y_AXIS_MASK);
-
-constexpr uint8_t LenientDecrementAmt = 24;
-constexpr uint16_t SkippedStepThreshold = 64;
-constexpr uint16_t SkippedStepThreshold_Lenient = LenientDecrementAmt * 6;
 
 //mode
 uint8_t tmc2130_mode = TMC2130_MODE_NORMAL;
@@ -42,7 +40,7 @@ uint8_t tmc2130_pwm_freq[4] = {TMC2130_PWM_FREQ_X, TMC2130_PWM_FREQ_Y, TMC2130_P
 
 uint8_t tmc2130_mres[4] = {0, 0, 0, 0}; //will be filed at begin of init
 
-
+uint8_t tmc2130_sg_filter[4] = { 0x0, 0x1, 0x0, 0x0 };
 uint8_t tmc2130_sg_thr[4] = {TMC2130_SG_THRS_X, TMC2130_SG_THRS_Y, TMC2130_SG_THRS_Z, TMC2130_SG_THRS_E};
 uint8_t tmc2130_sg_thr_home[4] = TMC2130_SG_THRS_HOME;
 
@@ -74,13 +72,13 @@ uint8_t tmc2130_sg_diag_mask = 0x00;
 uint8_t tmc2130_sg_crash = 0;
 
 // Set to 1 byte, if threshold below 255U
-#if (TMC2130_ERROR_CNT_THR < 256U)
+#if (TMC2130_ERROR_CNT_LENIENT_THR < 256U)
 uint8_t tmc2130_sg_err[4] = { 0, 0, 0, 0 };
 #ifdef DEBUG_CRASHDET_COUNTERS
 uint8_t tmc2130_sg_cnt[4] = { 0, 0, 0, 0 };
 #endif
 
-#else // TMC2130_ERROR_CNT_THR
+#else // TMC2130_ERROR_CNT_LENIENT_THR
 
 uint16_t tmc2130_sg_err[4] = {0, 0, 0, 0};
 #ifdef DEBUG_CRASHDET_COUNTERS
@@ -185,7 +183,7 @@ void tmc2130_init(TMCInitParams params)
 	{
 		tmc2130_setup_chopper(axis, tmc2130_mres[axis], tmc2130_current_h[axis], tmc2130_current_r[axis]);
 		tmc2130_wr(axis, TMC2130_REG_TPOWERDOWN, 0x00000000);
-		tmc2130_wr(axis, TMC2130_REG_COOLCONF, (((uint32_t)tmc2130_sg_thr[axis]) << 16));
+		tmc2130_wr(axis, TMC2130_REG_COOLCONF,(uint32_t)((((uint32_t)tmc2130_sg_thr[axis]) << 16) | (((uint32_t)tmc2130_sg_filter[axis]) << 24)));
 		tmc2130_wr(axis, TMC2130_REG_TCOOLTHRS, (tmc2130_mode == TMC2130_MODE_SILENT)?0:__tcoolthrs(axis));
 		tmc2130_wr(axis, TMC2130_REG_GCONF, (tmc2130_mode == TMC2130_MODE_SILENT)?TMC2130_GCONF_SILENT:TMC2130_GCONF_SGSENS);
 		tmc2130_wr_PWMCONF(axis, tmc2130_pwm_ampl[axis], tmc2130_pwm_grad[axis], tmc2130_pwm_freq[axis], tmc2130_pwm_auto[axis], 0, 0);
@@ -259,13 +257,13 @@ void tmc2130_init(TMCInitParams params)
 
 inline uint8_t tmc2130_sample_diag()
 {
-	uint8_t mask = 0;
-	if (READ(X_TMC2130_DIAG)) mask |= X_AXIS_MASK;
-	if (READ(Y_TMC2130_DIAG)) mask |= Y_AXIS_MASK;
+	//uint8_t mask = 0;
+	//if (READ(X_TMC2130_DIAG)) mask |= X_AXIS_MASK;
+	//if (READ(Y_TMC2130_DIAG)) mask |= Y_AXIS_MASK;
 //	if (READ(Z_TMC2130_DIAG)) mask |= Z_AXIS_MASK;
 //	if (READ(E0_TMC2130_DIAG)) mask |= E_AXIS_MASK;
-	//return ((READ(X_TMC2130_DIAG) ? X_AXIS_MASK : 0x0) | (READ(Y_TMC2130_DIAG) ? Y_AXIS_MASK : 0x0));
-//}
+	return ((READ(X_TMC2130_DIAG) ? X_AXIS_MASK : 0x0) | (READ(Y_TMC2130_DIAG) ? Y_AXIS_MASK : 0x0));
+}
 
 //extern bool is_usb_printing;
 
@@ -276,30 +274,51 @@ void tmc2130_st_isr()
 	const uint8_t diag_mask = tmc2130_sample_diag();
 //	for (uint8_t axis = X_AXIS; axis <= E_AXIS; axis++)
 //	for (uint8_t axis = X_AXIS; axis <= Z_AXIS; axis++)
-    for (uint8_t axis = X_AXIS; axis <= Y_AXIS; axis++)
-	{
+    for (uint8_t axis = X_AXIS; axis <= Y_AXIS; axis++) {
         auto& cur_cnt = tmc2130_sg_err[axis];
 		const uint8_t mask = (X_AXIS_MASK << axis);
 
-		if (diag_mask & mask) ++cur_cnt;
-		else if (cur_cnt > 0) --cur_cnt;
+        if (mask & ErrorLenienceMask) {
+            if (diag_mask & mask) ++cur_cnt;
+            else {
+                if (cur_cnt > TMC2130_ERROR_CNT_LENIENT_DEC) cur_cnt -= TMC2130_ERROR_CNT_LENIENT_DEC;
+                else if (cur_cnt > 0) cur_cnt = 0;
+            }
 
+#ifdef DEBUG_CRASHDET_COUNTERS 
+            if (tmc2130_sg_cnt[axis] < cur_cnt)
+            {
+                tmc2130_sg_cnt[axis] = cur_cnt;
+                tmc2130_sg_change = true;
+#endif
+                if (cur_cnt >= TMC2130_ERROR_CNT_LENIENT_THR)
+                {
+                    cur_cnt = 0;
+                    crash |= mask;
+                }
+#ifdef DEBUG_CRASHDET_COUNTERS 
+            }
+#endif
+        }
+        else {
+            if (diag_mask & mask) ++cur_cnt;
+            else if (cur_cnt > 0) --cur_cnt;
 
-        // This code is only needed for debugging, to detect change in value
 #ifdef DEBUG_CRASHDET_COUNTERS 
-		if (tmc2130_sg_cnt[axis] < cur_cnt)
-		{
-			tmc2130_sg_cnt[axis] = cur_cnt;
-			tmc2130_sg_change = true;
+            if (tmc2130_sg_cnt[axis] < cur_cnt)
+            {
+                tmc2130_sg_cnt[axis] = cur_cnt;
+                tmc2130_sg_change = true;
 #endif
-			if (cur_cnt >= TMC2130_ERROR_CNT_THR)
-			{
-				cur_cnt = 0;
-				crash |= mask;
-			}
+                if (cur_cnt >= TMC2130_ERROR_CNT_THR)
+                {
+                    cur_cnt = 0;
+                    crash |= mask;
+                }
 #ifdef DEBUG_CRASHDET_COUNTERS 
-		}
+            }
 #endif
+        }
 	}
 	if (tmc2130_sg_homing_axes_mask == 0)
 	{
@@ -379,7 +398,7 @@ void tmc2130_home_exit()
 //					tmc2130_wr(axis, TMC2130_REG_GCONF, TMC2130_GCONF_NORMAL);
 					tmc2130_setup_chopper(axis, tmc2130_mres[axis], tmc2130_current_h[axis], tmc2130_current_r[axis]);
 //					tmc2130_wr(axis, TMC2130_REG_COOLCONF, (((uint32_t)tmc2130_sg_thr[axis]) << 16) | ((uint32_t)1 << 24));
-					tmc2130_wr(axis, TMC2130_REG_COOLCONF, (((uint32_t)tmc2130_sg_thr[axis]) << 16));
+					tmc2130_wr(axis, TMC2130_REG_COOLCONF, (uint32_t)((((uint32_t)tmc2130_sg_thr[axis]) << 16) | (((uint32_t)tmc2130_sg_filter[axis]) << 24)));
 					tmc2130_wr(axis, TMC2130_REG_TCOOLTHRS, __tcoolthrs(axis));
 					tmc2130_wr(axis, TMC2130_REG_GCONF, TMC2130_GCONF_SGSENS);
 				}
