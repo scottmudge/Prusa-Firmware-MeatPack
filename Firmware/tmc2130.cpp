@@ -2,6 +2,7 @@
 
 #include "Marlin.h"
 
+
 #ifdef TMC2130
 
 #include "tmc2130.h"
@@ -13,6 +14,13 @@
 #define TMC2130_GCONF_SGSENS 0x00003180 // spreadCycle with stallguard (stall activates DIAG0 and DIAG1 [pushpull])
 #define TMC2130_GCONF_SILENT 0x00000004 // stealthChop
 
+// Test mask for axis-error lenience
+static constexpr uint8_t ErrorLenienceMask =
+(LENIENT_X_ERROR == 0 ? 0x0 : X_AXIS_MASK) | (LENIENT_Y_ERROR == 0 ? 0x0 : Y_AXIS_MASK);
+
+constexpr uint8_t SkippedStepThreshold = 64;
+constexpr uint8_t SkippedStepThreshold_Lenient = 96;
+constexpr uint8_t LenientDecrementAmt = 16;
 
 //mode
 uint8_t tmc2130_mode = TMC2130_MODE_NORMAL;
@@ -249,29 +257,50 @@ void tmc2130_st_isr()
 {
 	if (tmc2130_mode == TMC2130_MODE_SILENT || tmc2130_sg_stop_on_crash == false) return;
 	uint8_t crash = 0;
-	uint8_t diag_mask = tmc2130_sample_diag();
+	const uint8_t diag_mask = tmc2130_sample_diag();
 //	for (uint8_t axis = X_AXIS; axis <= E_AXIS; axis++)
 //	for (uint8_t axis = X_AXIS; axis <= Z_AXIS; axis++)
     for (uint8_t axis = X_AXIS; axis <= Y_AXIS; axis++)
 	{
-		uint8_t mask = (X_AXIS_MASK << axis);
-		if (diag_mask & mask) tmc2130_sg_err[axis]++;
-		else
-			if (tmc2130_sg_err[axis] > 0) tmc2130_sg_err[axis]--;
-		if (tmc2130_sg_cnt[axis] < tmc2130_sg_err[axis])
-		{
-			tmc2130_sg_cnt[axis] = tmc2130_sg_err[axis];
+		const uint8_t mask = (X_AXIS_MASK << axis);
+
+        // Lenient Check
+        if (mask & ErrorLenienceMask) {
+            if (diag_mask & mask) tmc2130_sg_err[axis]++;
+            else
+                if (tmc2130_sg_err[axis] > 0) tmc2130_sg_err[axis] -= LenientDecrementAmt;
+            if (tmc2130_sg_cnt[axis] < tmc2130_sg_err[axis])
+            {
+                tmc2130_sg_cnt[axis] = tmc2130_sg_err[axis];
 #ifdef DEBUG_CRASHDET_COUNTERS
-			tmc2130_sg_change = true;
+                tmc2130_sg_change = true;
 #endif
-			uint8_t sg_thr = 64;
-//			if (axis == Y_AXIS) sg_thr = 64;
-			if (tmc2130_sg_err[axis] >= sg_thr)
-			{
-				tmc2130_sg_err[axis] = 0;
-				crash |= mask;
-			}
-		}
+
+                if (tmc2130_sg_err[axis] >= SkippedStepThreshold_Lenient) {
+                    tmc2130_sg_err[axis] = 0;
+                    crash |= mask;
+                }
+            }
+        }
+        // Strict Check
+        else {
+            if (diag_mask & mask) tmc2130_sg_err[axis]++;
+            else
+                if (tmc2130_sg_err[axis] > 0) --tmc2130_sg_err[axis];
+            if (tmc2130_sg_cnt[axis] < tmc2130_sg_err[axis])
+            {
+                tmc2130_sg_cnt[axis] = tmc2130_sg_err[axis];
+#ifdef DEBUG_CRASHDET_COUNTERS
+                tmc2130_sg_change = true;
+#endif
+
+                if (tmc2130_sg_err[axis] >= SkippedStepThreshold)
+                {
+                    tmc2130_sg_err[axis] = 0;
+                    crash |= mask;
+                }
+            }
+        }
 	}
 	if (tmc2130_sg_homing_axes_mask == 0)
 	{

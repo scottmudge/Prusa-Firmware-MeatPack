@@ -4088,6 +4088,7 @@ extern uint8_t st_backlash_y;
 //!@n M405 - Turn on Filament Sensor extrusion control.  Optional D<delay in cm> to set delay in centimeters between sensor and extruder
 //!@n M406 - Turn off Filament Sensor extrusion control
 //!@n M407 - Displays measured filament diameter
+//!@n M480 - Reset fail stat counters
 //!@n M500 - stores parameters in EEPROM
 //!@n M501 - reads parameters from EEPROM (if you need reset them after you changed them temporarily).
 //!@n M502 - reverts to the default "factory settings".  You still need to store them in EEPROM afterwards if you want to.
@@ -7887,6 +7888,15 @@ Sigma_Exit:
 		}
 	}
 	break;
+
+    /*!
+    ### M480 - Reset all fail stat counters (useful for USB print).
+    */
+    case 480:
+    {
+        failstats_reset_print();
+    }
+    break;
 
     /*!
 	### M500 - Store settings in EEPROM <a href="https://reprap.org/wiki/G-code#M500:_Store_parameters_in_non-volatile_storage">M500: Store parameters in non-volatile storage</a>

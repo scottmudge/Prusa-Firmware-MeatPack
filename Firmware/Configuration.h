@@ -80,8 +80,17 @@ extern PGM_P sPrinterName;
 // This determines the communication speed of the printer
 #define BAUDRATE 115200
 
+#ifdef __INTELLISENSE__
+#define TMC2130
+#endif
+
 // Enable g-code compression (see https://github.com/scottmudge/OctoPrint-MeatPack)
 #define ENABLE_MEATPACK
+
+// Be more lenient with x-axis error detection
+#define LENIENT_X_ERROR 0
+// Be more lenient with y-axis error detection
+#define LENIENT_Y_ERROR 1
 
 // This enables the serial port associated to the Bluetooth interface
 //#define BTENABLED              // Enable BT interface on AT90USB devices
