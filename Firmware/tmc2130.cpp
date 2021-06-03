@@ -18,9 +18,9 @@
 static constexpr uint8_t ErrorLenienceMask =
 (LENIENT_X_ERROR == 0 ? 0x0 : X_AXIS_MASK) | (LENIENT_Y_ERROR == 0 ? 0x0 : Y_AXIS_MASK);
 
-constexpr uint8_t SkippedStepThreshold = 64;
-constexpr uint8_t SkippedStepThreshold_Lenient = 96;
-constexpr uint8_t LenientDecrementAmt = 16;
+constexpr uint8_t LenientDecrementAmt = 24;
+constexpr uint16_t SkippedStepThreshold = 64;
+constexpr uint16_t SkippedStepThreshold_Lenient = LenientDecrementAmt * 6;
 
 //mode
 uint8_t tmc2130_mode = TMC2130_MODE_NORMAL;
@@ -74,9 +74,9 @@ bool tmc2130_sg_stop_on_crash = true;
 uint8_t tmc2130_sg_diag_mask = 0x00;
 uint8_t tmc2130_sg_crash = 0;
 uint16_t tmc2130_sg_err[4] = {0, 0, 0, 0};
-uint16_t tmc2130_sg_cnt[4] = {0, 0, 0, 0};
 #ifdef DEBUG_CRASHDET_COUNTERS
 bool tmc2130_sg_change = false;
+uint16_t tmc2130_sg_cnt[4] = { 0, 0, 0, 0 };
 #endif
 
 bool skip_debug_msg = false;
@@ -220,10 +220,12 @@ void tmc2130_init(TMCInitParams params)
 	tmc2130_sg_err[1] = 0;
 	tmc2130_sg_err[2] = 0;
 	tmc2130_sg_err[3] = 0;
+#ifdef DEBUG_CRASHDET_COUNTERS
 	tmc2130_sg_cnt[0] = 0;
 	tmc2130_sg_cnt[1] = 0;
 	tmc2130_sg_cnt[2] = 0;
 	tmc2130_sg_cnt[3] = 0;
+#endif
 
 #ifdef TMC2130_LINEARITY_CORRECTION
 #ifdef TMC2130_LINEARITY_CORRECTION_XYZ
@@ -241,65 +243,71 @@ void tmc2130_init(TMCInitParams params)
 
 }
 
-uint8_t tmc2130_sample_diag()
-{
-	uint8_t mask = 0;
-	if (READ(X_TMC2130_DIAG)) mask |= X_AXIS_MASK;
-	if (READ(Y_TMC2130_DIAG)) mask |= Y_AXIS_MASK;
+//inline uint8_t tmc2130_sample_diag()
+//{
+// 	uint8_t mask = 0;
+// 	if (READ(X_TMC2130_DIAG)) mask |= X_AXIS_MASK;
+// 	if (READ(Y_TMC2130_DIAG)) mask |= Y_AXIS_MASK;
 //	if (READ(Z_TMC2130_DIAG)) mask |= Z_AXIS_MASK;
 //	if (READ(E0_TMC2130_DIAG)) mask |= E_AXIS_MASK;
-	return mask;
-}
+	//return ((READ(X_TMC2130_DIAG) ? X_AXIS_MASK : 0x0) | (READ(Y_TMC2130_DIAG) ? Y_AXIS_MASK : 0x0));
+//}
 
-extern bool is_usb_printing;
+//extern bool is_usb_printing;
 
 void tmc2130_st_isr()
 {
 	if (tmc2130_mode == TMC2130_MODE_SILENT || tmc2130_sg_stop_on_crash == false) return;
 	uint8_t crash = 0;
-	const uint8_t diag_mask = tmc2130_sample_diag();
-//	for (uint8_t axis = X_AXIS; axis <= E_AXIS; axis++)
-//	for (uint8_t axis = X_AXIS; axis <= Z_AXIS; axis++)
-    for (uint8_t axis = X_AXIS; axis <= Y_AXIS; axis++)
-	{
+    const uint8_t diag_mask = ((READ(X_TMC2130_DIAG) ? X_AXIS_MASK : 0x0) | (READ(Y_TMC2130_DIAG) ? Y_AXIS_MASK : 0x0));//tmc2130_sample_diag();
+    for (uint8_t axis = X_AXIS; axis <= Y_AXIS; ++axis) {
 		const uint8_t mask = (X_AXIS_MASK << axis);
+        uint16_t& val = tmc2130_sg_err[axis];
 
         // Lenient Check
         if (mask & ErrorLenienceMask) {
-            if (diag_mask & mask) tmc2130_sg_err[axis]++;
-            else
-                if (tmc2130_sg_err[axis] > 0) tmc2130_sg_err[axis] -= LenientDecrementAmt;
-            if (tmc2130_sg_cnt[axis] < tmc2130_sg_err[axis])
-            {
-                tmc2130_sg_cnt[axis] = tmc2130_sg_err[axis];
+
+            if (diag_mask & mask) val++;
+            else {
+                if (val > LenientDecrementAmt) val -= LenientDecrementAmt;
+                else if (val > 0) val = 0;
+            }
+
 #ifdef DEBUG_CRASHDET_COUNTERS
+            if (tmc2130_sg_cnt[axis] < val)
+            {
+                tmc2130_sg_cnt[axis] = val;
                 tmc2130_sg_change = true;
 #endif
-
-                if (tmc2130_sg_err[axis] >= SkippedStepThreshold_Lenient) {
-                    tmc2130_sg_err[axis] = 0;
+                if (val >= SkippedStepThreshold_Lenient) {
+                    val = 0;
                     crash |= mask;
                 }
+#ifdef DEBUG_CRASHDET_COUNTERS
             }
+#endif
         }
         // Strict Check
         else {
-            if (diag_mask & mask) tmc2130_sg_err[axis]++;
-            else
-                if (tmc2130_sg_err[axis] > 0) --tmc2130_sg_err[axis];
-            if (tmc2130_sg_cnt[axis] < tmc2130_sg_err[axis])
-            {
-                tmc2130_sg_cnt[axis] = tmc2130_sg_err[axis];
+            if (diag_mask & mask) val++;
+            else if (val > 0) --val;
+
 #ifdef DEBUG_CRASHDET_COUNTERS
+            if (tmc2130_sg_cnt[axis] < val)
+            {
+                tmc2130_sg_cnt[axis] = val;
+
                 tmc2130_sg_change = true;
 #endif
 
-                if (tmc2130_sg_err[axis] >= SkippedStepThreshold)
+                if (val >= SkippedStepThreshold)
                 {
-                    tmc2130_sg_err[axis] = 0;
+                    val = 0;
                     crash |= mask;
                 }
+#ifdef DEBUG_CRASHDET_COUNTERS
             }
+#endif
         }
 	}
 	if (tmc2130_sg_homing_axes_mask == 0)
