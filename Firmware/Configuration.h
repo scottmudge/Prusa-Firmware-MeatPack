@@ -90,7 +90,7 @@ extern PGM_P sPrinterName;
 // Be more lenient with x-axis error detection
 #define LENIENT_X_ERROR 0
 // Be more lenient with y-axis error detection
-#define LENIENT_Y_ERROR 1
+#define LENIENT_Y_ERROR 0
 
 // This enables the serial port associated to the Bluetooth interface
 //#define BTENABLED              // Enable BT interface on AT90USB devices
